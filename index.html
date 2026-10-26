@@ -1,0 +1,3481 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#050505">
+<meta name="description" content="YumzExe — Komunitas resmi Roblox executor. Script, tools, dan executor terpercaya.">
+<title>YumzExe — Official Community</title>
+<script src="security.js"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer">
+
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+/* ════════════════════════════════════════
+   TOKENS
+════════════════════════════════════════ */
+:root {
+  --bg:       #050505;
+  --bg2:      #0a0a0a;
+  --bg3:      #111111;
+  --bg4:      #1a1a1a;
+  --bg5:      #222222;
+  --border:         rgba(255,255,255,0.07);
+  --border-hover:   rgba(255,255,255,0.18);
+  --border-strong:  rgba(255,255,255,0.28);
+  --text:       #ffffff;
+  --text-dim:   #9ca3af;
+  --text-muted: #4b5563;
+  --accent:     #ffffff;
+  --red:        #ef4444;
+  --green:      #34d399;
+  --yellow:     #fbbf24;
+  --nav-h:      70px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-t: env(safe-area-inset-top, 0px);
+  --ease:   cubic-bezier(.4,0,.2,1);
+  --spring: cubic-bezier(.34,1.56,.64,1);
+  --fast:   cubic-bezier(.25,.46,.45,.94);
+}
+*, *::before, *::after {
+  box-sizing: border-box; margin: 0; padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+html, body {
+  height: 100%; background: var(--bg); color: var(--text);
+  font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.6;
+  overflow-x: hidden; -webkit-font-smoothing: antialiased;
+  user-select: none; -webkit-user-select: none;
+}
+:root {
+  box-sizing: border-box;
+  padding-top: var(--safe-t);
+  padding-bottom: var(--safe-b);
+}
+input, textarea { user-select: text; -webkit-user-select: text; }
+
+/* ════════════════════════════════════════
+   BACKGROUND
+════════════════════════════════════════ */
+.bg-grid {
+  position: fixed; inset: 0; z-index: -1;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse at 50% 40%, black 20%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 40%, black 20%, transparent 70%);
+  pointer-events: none;
+}
+.bg-noise {
+  position: fixed; inset: 0; z-index: -1; opacity: 0.025; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px;
+}
+.bg-glow {
+  position: fixed; inset: 0; z-index: -2; overflow: hidden; pointer-events: none;
+}
+.glow-blob {
+  position: absolute; border-radius: 50%; filter: blur(120px); opacity: 0.08;
+}
+.glow-1 { top: -15%; left: -15%; width: 55vw; height: 55vw; background: #fff; animation: driftA 25s infinite alternate ease-in-out; }
+.glow-2 { bottom: -15%; right: -15%; width: 65vw; height: 65vw; background: #aaa; animation: driftB 30s infinite alternate ease-in-out; }
+.glow-3 { top: 40%; left: 30%; width: 30vw; height: 30vw; background: #fff; opacity: 0.04; animation: driftA 18s infinite alternate-reverse ease-in-out; }
+@keyframes driftA { 0%{transform:translate(0,0) scale(1)} 100%{transform:translate(8%,12%) scale(1.15)} }
+@keyframes driftB { 0%{transform:translate(0,0) scale(1)} 100%{transform:translate(-10%,-8%) scale(1.2)} }
+
+/* ════════════════════════════════════════
+   LOGIN SCREEN — PREMIUM
+════════════════════════════════════════ */
+#loginScreen {
+  position: fixed; inset: 0; z-index: 9999;
+  background: #050505;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  transition: opacity .6s var(--ease), transform .6s var(--ease);
+  padding: 24px;
+  overflow: hidden;
+}
+#loginScreen.hide { opacity: 0; pointer-events: none; transform: scale(1.04); }
+
+/* Login ambient lines */
+.login-ambient {
+  position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+}
+.ambient-line {
+  position: absolute; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.06) 30%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.06) 70%, transparent 100%);
+}
+.ambient-line:nth-child(1) { top: 22%; animation: lineSlide 8s infinite linear; }
+.ambient-line:nth-child(2) { top: 55%; animation: lineSlide 12s infinite linear reverse; opacity: .6; }
+.ambient-line:nth-child(3) { top: 78%; animation: lineSlide 10s infinite linear; opacity: .4; }
+@keyframes lineSlide {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Login corner dots */
+.login-corner { position: absolute; width: 5px; height: 5px; background: rgba(255,255,255,0.2); border-radius: 50%; }
+.login-corner.tl { top: 40px; left: 40px; }
+.login-corner.tr { top: 40px; right: 40px; }
+.login-corner.bl { bottom: 40px; left: 40px; }
+.login-corner.br { bottom: 40px; right: 40px; }
+
+/* Login main card */
+.login-card {
+  position: relative; z-index: 1;
+  width: 100%; max-width: 380px;
+  background: rgba(10,10,10,0.6);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 28px;
+  padding: 40px 32px 36px;
+  text-align: center;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.5), 0 32px 80px rgba(0,0,0,0.6), 0 0 60px rgba(255,255,255,0.02) inset;
+}
+/* top accent shimmer */
+.login-card::before {
+  content: "";
+  position: absolute; top: 0; left: 15%; right: 15%; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+  border-radius: 1px;
+}
+/* subtle inner glow top */
+.login-card::after {
+  content: "";
+  position: absolute; top: 0; left: 0; right: 0; height: 80px; border-radius: 28px 28px 0 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent);
+  pointer-events: none;
+}
+
+/* Login logo */
+.login-logomark {
+  width: 60px; height: 60px;
+  background: #fff; color: #000;
+  border-radius: 18px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; margin: 0 auto 20px;
+  box-shadow: 0 8px 24px rgba(255,255,255,0.15);
+  position: relative;
+  animation: logoPulse 4s ease-in-out infinite;
+}
+@keyframes logoPulse {
+  0%,100% { box-shadow: 0 8px 24px rgba(255,255,255,0.15); }
+  50%      { box-shadow: 0 8px 40px rgba(255,255,255,0.3); }
+}
+.login-brand {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 28px; font-weight: 700; letter-spacing: -1.5px;
+  margin-bottom: 6px;
+}
+.login-brand span { color: var(--text-dim); font-weight: 400; }
+.login-version {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border: 1px solid var(--border-strong);
+  border-radius: 999px; font-size: 11px; color: var(--text-dim);
+  letter-spacing: 0.5px; margin-bottom: 8px;
+}
+.login-version::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green); box-shadow: 0 0 6px var(--green);
+  flex-shrink: 0;
+}
+.login-tagline {
+  font-size: 13px; color: var(--text-muted); margin-bottom: 32px; line-height: 1.5;
+}
+
+/* Login divider */
+.login-divider {
+  display: flex; align-items: center; gap: 12px;
+  margin: 20px 0; color: var(--text-muted); font-size: 12px;
+}
+.login-divider::before, .login-divider::after {
+  content: ""; flex: 1; height: 1px; background: var(--border);
+}
+
+/* Login buttons */
+.btn-google {
+  width: 100%; padding: 16px 20px;
+  border-radius: 14px; border: 1px solid rgba(255,255,255,0.2);
+  background: #ffffff; color: #000000;
+  font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 600;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+  transition: transform .2s var(--spring), box-shadow .2s var(--ease);
+  margin-bottom: 12px; position: relative; overflow: hidden;
+}
+.btn-google::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+  pointer-events: none;
+}
+.btn-google:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(255,255,255,0.2); }
+.btn-google:active { transform: scale(0.98); }
+.btn-guest {
+  width: 100%; padding: 14px 20px;
+  border-radius: 14px; border: 1px solid var(--border);
+  background: transparent; color: var(--text-dim);
+  font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 500;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+  transition: background .2s, color .2s, border-color .2s;
+}
+.btn-guest:hover { background: var(--bg3); color: var(--text); border-color: var(--border-hover); }
+.btn-guest:active { transform: scale(0.98); }
+
+.login-footer {
+  margin-top: 28px; font-size: 11px; color: var(--text-muted); line-height: 1.6;
+}
+.login-footer a { color: var(--text-dim); text-decoration: underline; text-underline-offset: 2px; }
+
+/* Login trust badges */
+.login-trust {
+  display: flex; align-items: center; justify-content: center; gap: 16px;
+  margin-top: 20px; padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.trust-item {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--text-muted);
+}
+.trust-item i { font-size: 10px; color: var(--green); }
+
+/* ════════════════════════════════════════
+   CHANNEL JOIN MODAL — first-time
+════════════════════════════════════════ */
+#channelModal {
+  position: fixed; inset: 0; z-index: 9990;
+  background: rgba(0,0,0,0.88);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  display: flex; align-items: flex-end; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity .4s var(--ease);
+  padding: 0 0 calc(16px + var(--safe-b)) 0;
+}
+#channelModal.show { opacity: 1; pointer-events: auto; }
+.channel-sheet {
+  background: var(--bg3);
+  border: 1px solid var(--border-strong);
+  border-radius: 28px 28px 20px 20px;
+  width: 100%; max-width: 440px;
+  padding: 0 0 28px 0;
+  transform: translateY(100px);
+  transition: transform .5s var(--spring);
+  overflow: hidden;
+  box-shadow: 0 -20px 60px rgba(0,0,0,0.7);
+}
+#channelModal.show .channel-sheet { transform: translateY(0); }
+
+.channel-handle {
+  display: flex; justify-content: center; padding: 14px 0 8px;
+}
+.handle-bar {
+  width: 40px; height: 4px; border-radius: 2px;
+  background: var(--border-strong);
+}
+
+.channel-inner { padding: 0 28px 0; }
+
+/* WhatsApp icon ring */
+.channel-icon-wrap {
+  display: flex; justify-content: center; margin-bottom: 20px;
+}
+.channel-icon-ring {
+  position: relative; width: 72px; height: 72px;
+}
+.channel-icon-ring svg {
+  position: absolute; inset: -4px; width: calc(100% + 8px); height: calc(100% + 8px);
+  animation: ringRotate 8s linear infinite;
+}
+@keyframes ringRotate { to { transform: rotate(360deg); } }
+.channel-icon-body {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: linear-gradient(135deg, #25d366, #128c7e);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 32px; color: #fff;
+  box-shadow: 0 8px 24px rgba(37,211,102,0.3);
+}
+
+.channel-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 22px; font-weight: 700; letter-spacing: -0.5px;
+  text-align: center; margin-bottom: 8px;
+}
+.channel-desc {
+  font-size: 13.5px; color: var(--text-dim); line-height: 1.65;
+  text-align: center; margin-bottom: 24px;
+}
+
+.channel-perks {
+  display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px;
+}
+.channel-perk {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px 14px;
+}
+.perk-icon {
+  width: 34px; height: 34px; border-radius: 10px;
+  background: var(--bg4); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; flex-shrink: 0; color: #fff;
+}
+.perk-text { flex: 1; min-width: 0; }
+.perk-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+.perk-sub { font-size: 11px; color: var(--text-muted); }
+
+.btn-join-channel {
+  width: 100%; padding: 16px;
+  border-radius: 14px; border: none;
+  background: linear-gradient(135deg, #25d366, #128c7e);
+  color: #fff; font-family: 'Space Grotesk', sans-serif;
+  font-size: 15px; font-weight: 700; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  transition: transform .2s var(--spring), box-shadow .2s var(--ease);
+  margin-bottom: 10px;
+  box-shadow: 0 8px 24px rgba(37,211,102,0.25);
+}
+.btn-join-channel:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(37,211,102,0.35); }
+.btn-join-channel:active { transform: scale(0.98); }
+.btn-skip-channel {
+  width: 100%; padding: 12px;
+  border-radius: 12px; border: 1px solid var(--border);
+  background: transparent; color: var(--text-muted);
+  font-size: 13px; cursor: pointer;
+  transition: color .2s;
+}
+.btn-skip-channel:hover { color: var(--text-dim); }
+
+/* ════════════════════════════════════════
+   WELCOME MODAL
+════════════════════════════════════════ */
+#welcomeModal {
+  position: fixed; inset: 0; z-index: 9998;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity .4s;
+  padding: 24px;
+}
+#welcomeModal.show { opacity: 1; pointer-events: auto; }
+.welcome-card {
+  background: var(--bg3); border: 1px solid var(--border-strong);
+  border-radius: 24px; padding: 32px 28px; text-align: center;
+  max-width: 340px; width: 100%;
+  transform: scale(.92) translateY(16px);
+  transition: transform .5s var(--spring);
+  position: relative; overflow: hidden;
+}
+.welcome-card::before {
+  content: ""; position: absolute; top: 0; left: 15%; right: 15%; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+}
+#welcomeModal.show .welcome-card { transform: scale(1) translateY(0); }
+.welcome-avatar {
+  width: 80px; height: 80px; border-radius: 50%; object-fit: cover;
+  margin: 0 auto 16px; border: 2px solid rgba(255,255,255,0.3);
+  display: block;
+  box-shadow: 0 0 0 6px rgba(255,255,255,0.06);
+}
+.welcome-title {
+  font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700;
+  margin-bottom: 6px;
+}
+.welcome-desc { font-size: 13.5px; color: var(--text-dim); margin-bottom: 24px; line-height: 1.5; }
+.btn-close-welcome {
+  width: 100%; padding: 14px; border-radius: 12px;
+  border: none; background: #fff; color: #000;
+  font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 14px;
+  cursor: pointer; transition: opacity .2s;
+}
+.btn-close-welcome:hover { opacity: 0.88; }
+
+/* ════════════════════════════════════════
+   APP LAYOUT
+════════════════════════════════════════ */
+.app {
+  position: relative; z-index: 1;
+  min-height: 100vh;
+  padding-bottom: calc(var(--nav-h) + 40px + var(--safe-b));
+}
+
+/* ════════════════════════════════════════
+   TOPBAR
+════════════════════════════════════════ */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 22px 10px;
+  position: sticky; top: 0; z-index: 20;
+  background: linear-gradient(180deg, rgba(5,5,5,0.95) 50%, transparent 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.logo {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700; font-size: 21px;
+  display: flex; align-items: center; gap: 9px;
+  letter-spacing: -0.5px;
+}
+.logo-mark {
+  width: 30px; height: 30px; background: #fff; color: #000;
+  border-radius: 9px; display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+}
+.user-info {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12.5px; font-weight: 500;
+}
+.user-avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 1px solid var(--border-strong); object-fit: cover;
+}
+.badge-guest {
+  padding: 4px 10px; border: 1px solid var(--border);
+  border-radius: 999px; font-size: 11px; color: var(--text-muted);
+}
+.badge-online {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--green); box-shadow: 0 0 6px var(--green);
+  flex-shrink: 0;
+}
+
+/* ════════════════════════════════════════
+   PAGE TRANSITIONS
+════════════════════════════════════════ */
+.page { display: none; }
+.page.active { display: block; animation: pageIn .35s var(--ease) both; }
+@keyframes pageIn {
+  from { opacity: 0; transform: translateX(12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ════════════════════════════════════════
+   HOME — HERO
+════════════════════════════════════════ */
+.hero { padding: 32px 22px 28px; text-align: center; }
+
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 14px; border: 1px solid var(--border-strong);
+  border-radius: 999px; font-size: 11px; letter-spacing: 0.5px;
+  margin-bottom: 18px; color: var(--text-dim);
+}
+.hero-badge::before {
+  content: ""; width: 5px; height: 5px; border-radius: 50%;
+  background: var(--green); box-shadow: 0 0 5px var(--green); flex-shrink: 0;
+}
+
+.hero-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(34px,8vw,52px); font-weight: 700;
+  line-height: 1.08; letter-spacing: -2.5px;
+  margin-bottom: 14px;
+}
+.hero-title .dim { color: var(--text-dim); font-weight: 500; }
+.hero-desc {
+  font-size: 14px; color: var(--text-dim);
+  max-width: 320px; margin: 0 auto 28px; line-height: 1.65;
+}
+
+/* CTA bar below hero */
+.hero-cta-bar {
+  display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
+  margin-bottom: 0;
+}
+.cta-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 14px; border-radius: 999px;
+  border: 1px solid var(--border); font-size: 12px;
+  color: var(--text-dim); cursor: pointer;
+  transition: background .2s, border-color .2s, color .2s;
+  background: var(--bg2);
+}
+.cta-chip:hover { background: var(--bg3); border-color: var(--border-hover); color: var(--text); }
+.cta-chip i { font-size: 11px; }
+
+/* ════════════════════════════════════════
+   STATS
+════════════════════════════════════════ */
+.stats-grid {
+  display: grid; grid-template-columns: repeat(3,1fr);
+  gap: 10px; padding: 24px 22px; margin-bottom: 0;
+}
+.stat-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 16px; padding: 18px 8px; text-align: center;
+  position: relative; overflow: hidden;
+  transition: border-color .2s, transform .2s;
+}
+.stat-card:hover { border-color: var(--border-hover); transform: translateY(-2px); }
+.stat-card::before {
+  content: ""; position: absolute; top: 0; left: 20%; right: 20%; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+}
+.stat-icon { font-size: 22px; margin-bottom: 10px; }
+.stat-num {
+  font-family: 'Orbitron', sans-serif; font-size: 20px; font-weight: 700;
+  margin-bottom: 4px; letter-spacing: -0.5px;
+}
+.stat-lbl { font-size: 9.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+
+/* ════════════════════════════════════════
+   CAROUSEL
+════════════════════════════════════════ */
+.carousel-wrap { padding: 0 22px 28px; }
+.carousel-label {
+  font-size: 11px; color: var(--text-muted); text-transform: uppercase;
+  letter-spacing: 1px; margin-bottom: 10px;
+}
+.carousel-track {
+  display: flex; gap: 10px; overflow-x: auto;
+  scroll-snap-type: x mandatory; scrollbar-width: none; padding-bottom: 12px;
+}
+.carousel-track::-webkit-scrollbar { display: none; }
+.carousel-slide {
+  flex: 0 0 100%; scroll-snap-align: start;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 18px; padding: 20px 18px;
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  position: relative; overflow: hidden;
+}
+.carousel-slide::before {
+  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+}
+.slide-label {
+  font-size: 10px; color: var(--text-muted); text-transform: uppercase;
+  letter-spacing: 1px; margin-bottom: 4px;
+}
+.slide-title { font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 15px; margin-bottom: 4px; }
+.slide-desc { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+.slide-btn {
+  padding: 9px 16px; background: #fff; color: #000;
+  border-radius: 10px; font-size: 12px; font-weight: 700;
+  white-space: nowrap; cursor: pointer; border: none; flex-shrink: 0;
+  transition: opacity .2s;
+  text-decoration: none; display: inline-block;
+}
+.slide-btn:hover { opacity: 0.85; }
+.carousel-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 2px; }
+.carousel-dots { display: flex; gap: 5px; }
+.dot { width: 5px; height: 5px; border-radius: 50%; background: var(--border-strong); transition: .3s; }
+.dot.active { background: #fff; width: 14px; border-radius: 10px; }
+.carousel-count { font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+
+/* ════════════════════════════════════════
+   ANNOUNCEMENT BANNER
+════════════════════════════════════════ */
+.announce-bar {
+  margin: 0 22px 24px;
+  background: rgba(37,211,102,0.07);
+  border: 1px solid rgba(37,211,102,0.2);
+  border-radius: 14px; padding: 14px 16px;
+  display: flex; align-items: center; gap: 12px;
+  cursor: pointer;
+  transition: background .2s;
+}
+.announce-bar:hover { background: rgba(37,211,102,0.12); }
+.announce-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--green); box-shadow: 0 0 8px var(--green);
+  flex-shrink: 0; animation: pulseDot 2s ease-in-out infinite;
+}
+@keyframes pulseDot { 0%,100%{opacity:1} 50%{opacity:.4} }
+.announce-text { flex: 1; min-width: 0; }
+.announce-title { font-size: 12.5px; font-weight: 600; margin-bottom: 2px; }
+.announce-sub { font-size: 11px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.announce-arrow { color: var(--text-muted); font-size: 12px; flex-shrink: 0; }
+
+/* ════════════════════════════════════════
+   EXECUTOR PAGE
+════════════════════════════════════════ */
+.page-header { padding: 26px 22px 16px; }
+.page-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 26px; font-weight: 700; letter-spacing: -1px; margin-bottom: 4px;
+}
+.page-desc { font-size: 13px; color: var(--text-dim); }
+
+.list-grid { display: flex; flex-direction: column; gap: 10px; padding: 0 22px; }
+
+.item-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 16px; overflow: hidden; cursor: pointer;
+  display: flex; align-items: center; gap: 14px; padding: 13px 14px;
+  transition: border-color .2s, transform .2s, background .2s;
+  text-decoration: none; color: #fff; position: relative;
+}
+.item-card::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.02), transparent);
+  pointer-events: none;
+}
+.item-card:hover { border-color: var(--border-hover); transform: translateY(-2px); background: var(--bg3); }
+.item-card:active { transform: scale(0.98); }
+
+.item-thumb {
+  width: 52px; height: 52px; border-radius: 12px; object-fit: cover;
+  background: var(--bg4); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; border: 1px solid var(--border);
+}
+.item-info { flex: 1; min-width: 0; }
+.item-name {
+  font-family: 'Space Grotesk', sans-serif; font-size: 14.5px; font-weight: 600;
+  margin-bottom: 3px; display: flex; align-items: center; gap: 7px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.item-detail { font-size: 11px; color: var(--text-muted); margin-bottom: 3px; }
+.item-status { font-size: 11px; font-weight: 500; display: inline-flex; align-items: center; gap: 4px; }
+.status-working { color: var(--green); }
+.status-patched  { color: var(--text-muted); text-decoration: line-through; }
+.status-popular  { color: var(--red); }
+
+.badge-hot {
+  background: rgba(239,68,68,0.12); color: var(--red);
+  border: 1px solid rgba(239,68,68,0.25);
+  padding: 2px 7px; border-radius: 999px; font-size: 9px; font-weight: 800;
+  letter-spacing: 0.5px; animation: pulseHot 2.5s ease-in-out infinite; flex-shrink: 0;
+}
+@keyframes pulseHot {
+  0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.3); }
+  50%      { box-shadow: 0 0 0 5px rgba(239,68,68,0); }
+}
+.badge-new {
+  background: rgba(52,211,153,0.1); color: var(--green);
+  border: 1px solid rgba(52,211,153,0.2);
+  padding: 2px 7px; border-radius: 999px; font-size: 9px; font-weight: 800;
+  letter-spacing: 0.5px; flex-shrink: 0;
+}
+
+/* Executor info strip */
+.exec-strip {
+  display: flex; gap: 8px; margin: 0 22px 24px;
+}
+.exec-strip-item {
+  flex: 1; background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px 10px; text-align: center;
+}
+.exec-strip-num { font-family: 'Orbitron', sans-serif; font-size: 17px; font-weight: 700; }
+.exec-strip-lbl { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 3px; }
+
+/* ════════════════════════════════════════
+   SEARCH BAR
+════════════════════════════════════════ */
+.search-bar { margin: 0 22px 18px; position: relative; }
+.search-bar input {
+  width: 100%; padding: 13px 16px 13px 42px;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 13px; color: #fff; font-size: 13.5px;
+  outline: none; transition: border-color .2s, background .2s;
+  font-family: 'Inter', sans-serif;
+}
+.search-bar input:focus { border-color: var(--border-strong); background: var(--bg3); }
+.search-bar input::placeholder { color: var(--text-muted); }
+.search-bar i {
+  position: absolute; left: 15px; top: 50%;
+  transform: translateY(-50%); color: var(--text-muted); font-size: 13px;
+}
+.search-bar .search-hint {
+  position: absolute; right: 14px; top: 50%;
+  transform: translateY(-50%); font-size: 10px; color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+  background: var(--bg4); border: 1px solid var(--border); border-radius: 5px; padding: 2px 6px;
+}
+
+/* ════════════════════════════════════════
+   TOOLS PAGE
+════════════════════════════════════════ */
+.tools-list { padding: 0 22px; display: flex; flex-direction: column; gap: 14px; }
+
+.tool-card {
+  background: linear-gradient(160deg, var(--bg3), var(--bg2));
+  border: 1px solid var(--border); border-radius: 20px;
+  padding: 22px 20px; display: flex; flex-direction: column; gap: 10px;
+  transition: border-color .2s, transform .2s; cursor: pointer; position: relative; overflow: hidden;
+}
+.tool-card::before {
+  content: ""; position: absolute; top: 0; left: 15%; right: 15%; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
+}
+.tool-card:hover { border-color: var(--border-hover); transform: translateY(-2px); }
+.tool-card:active { transform: scale(0.99); }
+
+.tool-header { display: flex; align-items: center; justify-content: space-between; }
+.tool-icon-wrap { display: flex; align-items: center; gap: 12px; }
+.tool-icon {
+  width: 44px; height: 44px; background: var(--bg4);
+  border: 1px solid var(--border-strong); border-radius: 13px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; color: #fff; flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+.tool-name { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 17px; letter-spacing: -0.5px; }
+.tool-badge { padding: 4px 9px; border-radius: 999px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+.badge-active { background: rgba(52,211,153,0.1); color: var(--green); border: 1px solid rgba(52,211,153,0.25); }
+.badge-maint  { background: rgba(251,191,36,0.1);  color: var(--yellow); border: 1px solid rgba(251,191,36,0.25); }
+.badge-soon   { background: rgba(255,255,255,0.06); color: var(--text-dim); border: 1px solid var(--border); }
+
+.tool-detail-desc { font-size: 13px; color: var(--text-dim); line-height: 1.65; }
+.tool-features { display: flex; flex-direction: column; gap: 5px; }
+.tool-feature-item { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
+.tool-feature-item i { color: var(--text-dim); font-size: 9px; }
+.tool-action-btn {
+  margin-top: 8px; width: 100%; padding: 11px;
+  border-radius: 11px; border: 1px solid var(--border-strong);
+  background: transparent; color: #fff; font-weight: 600; font-size: 13px;
+  cursor: pointer; transition: background .2s, color .2s;
+}
+.tool-card:hover .tool-action-btn { background: #fff; color: #000; }
+
+/* ════════════════════════════════════════
+   TOOL INFO MODAL
+════════════════════════════════════════ */
+#toolInfoModal {
+  position: fixed; inset: 0; z-index: 9500;
+  background: rgba(0,0,0,0.88); backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex; align-items: flex-end; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity .3s;
+  padding: 0 0 calc(10px + var(--safe-b)) 0;
+}
+#toolInfoModal.show { opacity: 1; pointer-events: auto; }
+.tool-modal-content {
+  background: var(--bg3); border: 1px solid var(--border-strong);
+  border-radius: 28px 28px 20px 20px; width: 100%; max-width: 480px;
+  padding: 24px 24px 28px; position: relative;
+  transform: translateY(60px); transition: transform .4s var(--spring);
+  box-shadow: 0 -16px 50px rgba(0,0,0,0.7);
+}
+#toolInfoModal.show .tool-modal-content { transform: translateY(0); }
+
+.tool-modal-handle { display: flex; justify-content: center; margin-bottom: 20px; }
+.tool-modal-close {
+  position: absolute; top: 18px; right: 18px;
+  background: var(--bg4); border: 1px solid var(--border); color: #fff;
+  width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; font-size: 12px;
+}
+.tool-modal-icon {
+  width: 56px; height: 56px; background: var(--bg2);
+  border: 1px solid var(--border-strong); border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; color: #fff; margin-bottom: 16px;
+}
+.tool-modal-title { font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+.tool-modal-desc { font-size: 13px; color: var(--text-dim); margin-bottom: 20px; line-height: 1.65; }
+
+.tool-steps-title {
+  font-size: 11px; font-weight: 700; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: 1px;
+  margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.tool-step { display: flex; gap: 12px; margin-bottom: 10px; align-items: flex-start; }
+.tool-step-num {
+  width: 22px; height: 22px; background: var(--bg4); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; flex-shrink: 0; margin-top: 1px;
+}
+.tool-step-text { font-size: 12.5px; color: var(--text-dim); line-height: 1.5; }
+.btn-execute {
+  width: 100%; padding: 14px; background: #fff; color: #000;
+  border: none; border-radius: 12px; font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700; font-size: 14px; cursor: pointer; margin-top: 16px;
+  display: flex; justify-content: center; align-items: center; gap: 8px;
+  transition: opacity .2s;
+}
+.btn-execute:hover { opacity: 0.88; }
+
+/* ════════════════════════════════════════
+   WARNING MODAL
+════════════════════════════════════════ */
+#warningModal {
+  position: fixed; inset: 0; z-index: 9600;
+  background: rgba(0,0,0,0.92); backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity .3s; padding: 22px;
+}
+#warningModal.show { opacity: 1; pointer-events: auto; }
+.warning-content {
+  background: #090909; border: 1px solid rgba(239,68,68,0.35);
+  border-radius: 22px; width: 100%; max-width: 400px; padding: 28px;
+  box-shadow: 0 0 0 1px rgba(239,68,68,0.1), 0 24px 60px rgba(0,0,0,0.7), 0 0 50px rgba(239,68,68,0.06);
+}
+.warning-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.warning-icon { color: var(--red); font-size: 26px; }
+.warning-title { font-family: 'Space Grotesk', sans-serif; font-size: 19px; font-weight: 700; }
+.warning-text { font-size: 13px; color: var(--text-dim); line-height: 1.7; margin-bottom: 22px; }
+.warning-text b { color: #fff; }
+.warning-text .mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; background: var(--bg4); padding: 2px 6px; border-radius: 4px; color: var(--text-dim); }
+.btn-warning {
+  width: 100%; padding: 14px; background: var(--yellow); color: #000;
+  border: none; border-radius: 12px;
+  font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 14px;
+  cursor: pointer; transition: opacity .3s;
+  display: flex; justify-content: center; align-items: center; gap: 8px;
+}
+.btn-warning:disabled { background: var(--bg3); color: var(--text-muted); cursor: not-allowed; border: 1px solid var(--border); }
+.btn-warning:not(:disabled):hover { opacity: 0.88; }
+
+/* ════════════════════════════════════════
+   EXEC PANELS
+════════════════════════════════════════ */
+.exec-panel {
+  display: none; position: fixed; inset: 0; z-index: 9400;
+  background: var(--bg); overflow-y: auto;
+  padding-bottom: calc(80px + var(--safe-b));
+}
+.exec-panel.active { display: block; animation: slideFromRight .3s var(--ease) both; }
+@keyframes slideFromRight {
+  from { opacity: 0; transform: translateX(100%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.exec-header {
+  position: sticky; top: 0; z-index: 10;
+  background: rgba(5,5,5,0.9); backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 18px 22px; display: flex; align-items: center; gap: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.btn-back {
+  background: var(--bg3); border: 1px solid var(--border); color: #fff;
+  width: 38px; height: 38px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 14px; flex-shrink: 0;
+  transition: background .2s;
+}
+.btn-back:hover { background: var(--bg4); }
+.exec-title { font-family: 'Space Grotesk', sans-serif; font-size: 19px; font-weight: 700; }
+.exec-content { padding: 24px 22px; }
+
+/* Info callout */
+.info-callout {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-left: 3px solid rgba(255,255,255,0.3);
+  border-radius: 12px; padding: 14px 16px;
+  font-size: 12.5px; color: var(--text-dim); line-height: 1.6; margin-bottom: 20px;
+}
+.info-callout strong { color: var(--text); }
+
+/* Input group */
+.input-group { display: flex; gap: 8px; margin-bottom: 16px; }
+.input-group input {
+  flex: 1; padding: 13px 14px;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 12px; color: #fff; outline: none;
+  font-family: 'Inter', sans-serif; font-size: 14px;
+  transition: border-color .2s;
+}
+.input-group input:focus { border-color: var(--border-strong); }
+.btn-process {
+  padding: 13px 18px; background: #fff; color: #000;
+  border: none; border-radius: 12px; font-weight: 700;
+  cursor: pointer; white-space: nowrap; font-size: 13px;
+  display: flex; justify-content: center; align-items: center; gap: 6px;
+  transition: opacity .2s;
+}
+.btn-process:hover { opacity: 0.88; }
+
+/* Account result */
+.account-result {
+  display: none; background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 16px; padding: 20px; margin-top: 4px;
+}
+.account-result.show { display: block; animation: pageIn .4s var(--ease); }
+.acc-header { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 14px; }
+.acc-avatar { width: 56px; height: 56px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.2); object-fit: cover; background: var(--bg4); }
+.acc-name { font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 700; margin-bottom: 2px; }
+.acc-displayname { font-size: 12px; color: var(--text-dim); }
+.acc-detail { font-size: 12px; margin-bottom: 7px; display: flex; justify-content: space-between; align-items: center; }
+.acc-detail span:first-child { color: var(--text-muted); }
+.acc-detail span:last-child { font-weight: 500; font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+
+/* Maint wrap */
+.maint-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 38vh; text-align: center; padding: 20px; }
+.maint-icon { font-size: 44px; margin-bottom: 18px; color: var(--text-muted); }
+.maint-title { font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; margin-bottom: 10px; }
+.maint-desc { font-size: 13px; color: var(--text-muted); max-width: 280px; line-height: 1.65; }
+.maint-badge {
+  margin-top: 16px; display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border: 1px solid var(--border);
+  border-radius: 999px; font-size: 11px; color: var(--text-muted);
+}
+
+/* Console panel */
+.console-panel {
+  display: none; margin-top: 14px; background: #040408;
+  border: 1px solid var(--border); border-radius: 14px; overflow: hidden;
+}
+.console-panel.visible { display: block; animation: pageIn .4s var(--ease); }
+.console-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 9px 14px; background: #09090e; border-bottom: 1px solid var(--border);
+  font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--text-muted);
+}
+.console-status { display: flex; align-items: center; gap: 6px; }
+.console-status-dot { width: 5px; height: 5px; border-radius: 50%; }
+.console-status-dot.running { background: var(--yellow); box-shadow: 0 0 5px var(--yellow); animation: pulseDot 1s ease-in-out infinite; }
+.console-status-dot.done    { background: var(--green);  box-shadow: 0 0 5px var(--green); }
+.console-status-dot.idle    { background: var(--text-muted); }
+.console-body {
+  padding: 12px 14px; font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: var(--text-dim); max-height: 180px; overflow-y: auto;
+}
+.console-line { margin-bottom: 3px; display: flex; gap: 8px; }
+.console-line::before { content: ">"; color: var(--text-muted); flex-shrink: 0; }
+.console-line.ok  { color: var(--green); }
+.console-line.err { color: var(--red); }
+
+/* ════════════════════════════════════════
+   ABOUT / PROFILE
+════════════════════════════════════════ */
+.about-wrap { padding: 0 22px 24px; }
+.profile-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 20px; padding: 28px 22px; text-align: center;
+  margin-bottom: 16px; position: relative; overflow: hidden;
+}
+.profile-card::before {
+  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+}
+.profile-avatar-wrap { position: relative; width: 74px; margin: 0 auto 14px; }
+.profile-avatar {
+  width: 74px; height: 74px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.2); object-fit: cover;
+  display: block;
+}
+.profile-online-ring {
+  position: absolute; bottom: 2px; right: 2px;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--green); border: 2px solid var(--bg);
+  box-shadow: 0 0 6px var(--green);
+}
+.profile-name { font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; margin-bottom: 3px; }
+.profile-email { font-size: 12px; color: var(--text-dim); margin-bottom: 20px; }
+
+.about-section { background: var(--bg2); border: 1px solid var(--border); border-radius: 18px; padding: 22px; margin-bottom: 14px; }
+.about-section-title { font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+.about-section-title i { font-size: 13px; color: var(--text-muted); }
+.about-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 13px; }
+.about-row:last-child { margin-bottom: 0; }
+.about-row .label { color: var(--text-muted); }
+.about-row .value { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-dim); }
+.about-row .value.green { color: var(--green); }
+
+/* ════════════════════════════════════════
+   SCRIPT MODAL
+════════════════════════════════════════ */
+.modal {
+  position: fixed; inset: 0; z-index: 9000;
+  background: rgba(0,0,0,0.88); backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex; align-items: flex-end; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity .3s;
+  padding: 0 0 calc(10px + var(--safe-b)) 0;
+}
+.modal.show { opacity: 1; pointer-events: auto; }
+.modal-content {
+  background: var(--bg3); border: 1px solid var(--border-strong);
+  border-radius: 28px 28px 20px 20px; width: 100%; max-width: 500px;
+  padding: 22px 22px 26px; position: relative;
+  max-height: 88vh; overflow-y: auto;
+  transform: translateY(60px); transition: transform .4s var(--spring);
+  box-shadow: 0 -16px 50px rgba(0,0,0,0.7);
+}
+.modal.show .modal-content { transform: translateY(0); }
+.modal-handle { display: flex; justify-content: center; margin-bottom: 16px; }
+.modal-close {
+  position: absolute; top: 16px; right: 16px;
+  background: var(--bg4); border: 1px solid var(--border); color: #fff;
+  width: 28px; height: 28px; border-radius: 50%;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 11px;
+}
+.modal-title {
+  font-family: 'Space Grotesk', sans-serif; font-size: 19px; font-weight: 700;
+  margin-bottom: 5px; padding-right: 36px;
+}
+.code-box {
+  background: #030305; border: 1px solid var(--border);
+  border-radius: 12px; padding: 14px; font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px; color: #6b7280; position: relative;
+  max-height: 260px; overflow-y: auto; margin: 14px 0;
+}
+.code-box pre { margin: 0; font-family: inherit; white-space: pre-wrap; word-break: break-all; }
+.btn-copy {
+  position: absolute; top: 10px; right: 10px;
+  background: var(--bg3); border: 1px solid var(--border);
+  color: #fff; padding: 5px 10px; border-radius: 7px;
+  font-size: 10.5px; cursor: pointer; transition: background .2s;
+}
+.btn-copy:hover { background: var(--bg4); }
+.modal-actions { display: flex; gap: 8px; }
+.btn-primary {
+  flex: 1; padding: 13px; background: #fff; color: #000;
+  border: none; border-radius: 11px; font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700; font-size: 13px; cursor: pointer; display: flex;
+  align-items: center; justify-content: center; gap: 7px;
+  transition: opacity .2s;
+}
+.btn-primary:hover { opacity: 0.88; }
+.btn-secondary {
+  flex: 1; padding: 13px; background: var(--bg4); color: var(--text-dim);
+  border: 1px solid var(--border); border-radius: 11px;
+  font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 13px;
+  cursor: pointer; transition: background .2s;
+}
+.btn-secondary:hover { background: var(--bg5); }
+
+/* ════════════════════════════════════════
+   BOTTOM NAV
+════════════════════════════════════════ */
+.bottom-nav {
+  position: fixed; bottom: calc(14px + var(--safe-b)); left: 50%;
+  transform: translateX(-50%); z-index: 100;
+  background: rgba(10,10,10,0.92); backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border-strong); border-radius: 999px;
+  padding: 7px; display: flex; align-items: center; gap: 3px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04) inset;
+  width: max-content; max-width: calc(100vw - 20px); overflow-x: auto; scrollbar-width: none;
+}
+.bottom-nav::-webkit-scrollbar { display: none; }
+.nav-item {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 7px 9px; border-radius: 999px;
+  cursor: pointer; border: none; background: transparent;
+  color: var(--text-muted); min-width: 50px;
+  transition: background .2s, color .2s;
+}
+.nav-item.active { background: #fff; color: #000; }
+.nav-item:not(.active):hover { background: var(--bg3); color: var(--text-dim); }
+.nav-icon { font-size: 15px; }
+.nav-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+
+/* ════════════════════════════════════════
+   TOAST
+════════════════════════════════════════ */
+.toast {
+  position: fixed; top: calc(18px + var(--safe-t)); left: 50%;
+  transform: translate(-50%, -130%); z-index: 10000;
+  background: rgba(18,18,18,0.95); backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #fff; border: 1px solid var(--border-strong);
+  border-radius: 12px; padding: 11px 18px; font-size: 13px; font-weight: 500;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  transition: transform .4s var(--spring);
+  display: flex; align-items: center; gap: 8px; white-space: nowrap;
+}
+.toast.show { transform: translate(-50%, 0); }
+.toast-icon { font-size: 14px; }
+
+/* ════════════════════════════════════════
+   GLOBAL CHAT PLACEHOLDER
+════════════════════════════════════════ */
+.coming-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 14px; border: 1px solid var(--border);
+  border-radius: 999px; font-size: 11px; color: var(--text-muted);
+  margin-top: 14px;
+}
+
+/* ════════════════════════════════════════
+   SPINNER
+════════════════════════════════════════ */
+.spinner {
+  display: inline-block; width: 20px; height: 20px;
+  border: 2px solid rgba(255,255,255,0.15); border-radius: 50%;
+  border-top-color: #fff; animation: spin 1s ease-in-out infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ════════════════════════════════════════
+   HOAX RESULT
+════════════════════════════════════════ */
+.hoax-result-card {
+  margin-top: 18px; background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 16px; padding: 22px; display: none;
+}
+.hoax-result-card.show { display: block; animation: pageIn .4s var(--ease); }
+.hoax-score-big {
+  font-family: 'Orbitron', sans-serif; font-size: 48px; font-weight: 900;
+  letter-spacing: -2px; line-height: 1; margin-bottom: 4px;
+}
+.hoax-score-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px; }
+.hoax-summary { font-size: 13px; color: var(--text-dim); line-height: 1.65; }
+.hoax-meter { height: 4px; background: var(--bg4); border-radius: 4px; margin: 14px 0; overflow: hidden; }
+.hoax-meter-fill { height: 100%; border-radius: 4px; transition: width .6s var(--ease); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+/* ════════════════════════════════════════
+   GLOBAL CHAT
+════════════════════════════════════════ */
+.chat-container {
+  display: flex; flex-direction: column;
+  height: calc(100vh - 152px);
+  padding: 0 22px;
+}
+.chat-header {
+  padding: 18px 0 14px; border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.chat-header-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 22px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 4px;
+}
+.chat-live-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--green);
+}
+.chat-live-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green); box-shadow: 0 0 5px var(--green);
+  animation: pulseDot 2s ease-in-out infinite;
+}
+.chat-messages {
+  flex: 1; overflow-y: auto; display: flex; flex-direction: column;
+  gap: 10px; padding: 16px 0;
+  scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+}
+.chat-messages::-webkit-scrollbar { width: 3px; }
+.chat-messages::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+.chat-input-box {
+  display: flex; gap: 8px; padding: 14px 0 18px;
+  border-top: 1px solid var(--border); flex-shrink: 0;
+}
+.chat-input-box input {
+  flex: 1; padding: 12px 16px;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 12px; color: #fff; outline: none;
+  font-family: 'Inter', sans-serif; font-size: 13.5px;
+  transition: border-color .2s;
+}
+.chat-input-box input:focus { border-color: var(--border-strong); }
+.chat-input-box input::placeholder { color: var(--text-muted); }
+.chat-input-box button {
+  padding: 0 18px; background: #fff; color: #000;
+  border: none; border-radius: 12px; cursor: pointer;
+  font-size: 14px; transition: opacity .2s; flex-shrink: 0;
+}
+.chat-input-box button:hover { opacity: 0.85; }
+.chat-input-box button:active { transform: scale(0.96); }
+.chat-msg { display: flex; flex-direction: column; max-width: 80%; }
+.chat-msg.me    { align-self: flex-end;   align-items: flex-end; }
+.chat-msg.other { align-self: flex-start; align-items: flex-start; }
+.chat-name { font-size: 10px; color: var(--text-muted); margin-bottom: 4px; font-weight: 600; }
+.chat-bubble {
+  padding: 10px 14px; border-radius: 16px;
+  font-size: 13.5px; line-height: 1.5; word-break: break-word;
+}
+.chat-msg.me .chat-bubble {
+  background: #fff; color: #000;
+  border-bottom-right-radius: 4px;
+}
+.chat-msg.other .chat-bubble {
+  background: var(--bg3); color: #fff;
+  border-bottom-left-radius: 4px;
+  border: 1px solid var(--border);
+}
+.chat-empty {
+  text-align: center; padding: 40px 20px;
+  color: var(--text-muted); font-size: 13px;
+}
+.chat-empty i { font-size: 28px; margin-bottom: 10px; display: block; color: var(--border-strong); }
+
+/* ════════════════════════════════════════
+   PROFILE DROPDOWN
+════════════════════════════════════════ */
+.profile-btn {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 999px; padding: 5px 12px 5px 6px;
+  cursor: pointer; transition: border-color .2s, background .2s;
+  position: relative;
+}
+.profile-btn:hover { border-color: var(--border-hover); background: var(--bg3); }
+.profile-btn .p-avatar {
+  width: 26px; height: 26px; border-radius: 50%;
+  border: 1px solid var(--border-strong); object-fit: cover; flex-shrink: 0;
+}
+.profile-btn .p-name { font-size: 12px; font-weight: 600; color: var(--text-dim); max-width: 80px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.profile-btn .p-chevron { font-size: 10px; color: var(--text-muted); transition: transform .2s; }
+.profile-btn.open .p-chevron { transform: rotate(180deg); }
+
+.profile-dropdown {
+  position: absolute; top: calc(100% + 8px); right: 0;
+  background: var(--bg3); border: 1px solid var(--border-strong);
+  border-radius: 16px; padding: 8px;
+  min-width: 190px; z-index: 200;
+  opacity: 0; pointer-events: none; transform: translateY(-6px);
+  transition: opacity .2s var(--ease), transform .2s var(--ease);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.6);
+}
+.profile-dropdown.open { opacity: 1; pointer-events: auto; transform: translateY(0); }
+
+.profile-dropdown::before {
+  content: ""; position: absolute; top: 0; left: 15%; right: 15%; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+}
+
+.dropdown-header {
+  padding: 12px 12px 10px; border-bottom: 1px solid var(--border); margin-bottom: 6px;
+  display: flex; align-items: center; gap: 10px;
+}
+.dropdown-header img {
+  width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border-strong); object-fit: cover;
+}
+.dropdown-header-info { flex: 1; min-width: 0; }
+.dropdown-username { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dropdown-role { font-size: 10px; color: var(--text-muted); }
+
+.dropdown-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 10px; cursor: pointer;
+  font-size: 13px; color: var(--text-dim); transition: background .15s, color .15s;
+  border: none; background: transparent; width: 100%; text-align: left;
+}
+.dropdown-item:hover { background: var(--bg4); color: var(--text); }
+.dropdown-item i { font-size: 12px; color: var(--text-muted); width: 14px; text-align: center; }
+.dropdown-item.danger { color: var(--red); }
+.dropdown-item.danger i { color: var(--red); }
+.dropdown-item.danger:hover { background: rgba(239,68,68,0.1); color: var(--red); }
+
+/* topbar position context */
+.topbar { position: relative; }
+.user-info-wrap { position: relative; }
+/* ══ ADDON: TOPBAR ACTIONS ══ */
+.top-acts { display:flex; align-items:center; gap:8px; margin-right:8px; }
+.top-act {
+  width:38px; height:38px; border-radius:50%; flex-shrink:0;
+  border:1px solid var(--border); background:var(--bg3); color:var(--text-dim);
+  display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:15px;
+  position:relative; transition: transform .2s var(--spring), border-color .2s, color .2s;
+}
+.top-act:hover, .top-act:active { transform:translateY(-2px); border-color:var(--border-hover); color:var(--text); }
+.top-act::after {
+  content: attr(data-tip); position:absolute; top:calc(100% + 8px); left:50%;
+  transform:translateX(-50%) translateY(-4px); background:var(--bg4); border:1px solid var(--border);
+  color:var(--text); font-size:10px; padding:4px 8px; border-radius:8px; white-space:nowrap;
+  opacity:0; pointer-events:none; transition: opacity .2s, transform .2s;
+}
+.top-act:hover::after, .top-act:active::after { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* ══ ADDON: LIVE STATS ══ */
+.live-ring { width:48px; height:48px; margin:0 auto 8px; position:relative; }
+.live-ring svg { width:48px; height:48px; transform:rotate(-90deg); }
+.live-ring circle { fill:none; stroke-width:4; stroke-linecap:round; }
+.live-ring .track { stroke:var(--bg4); }
+.live-ring .val { transition: stroke-dashoffset .6s var(--ease), stroke .3s; }
+.live-ring i { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--text-dim); }
+.live-num { font-family:'Space Grotesk',sans-serif; font-size:17px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:4px; min-height:24px; }
+.live-dot { display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--green); animation: liveBlink 1.6s infinite; }
+@keyframes liveBlink { 0%,100%{opacity:1} 50%{opacity:.25} }
+.spark { width:100%; height:20px; margin-top:6px; color:var(--green); }
+.spark polyline { fill:none; stroke:currentColor; stroke-width:1.5; vector-effect:non-scaling-stroke; }
+
+/* ══ ADDON: LEADERBOARD ══ */
+.lb-podium { display:flex; align-items:flex-end; justify-content:center; gap:8px; padding:34px 22px 8px; min-height:260px; }
+.lb-slot { flex:1; max-width:120px; display:flex; flex-direction:column; align-items:center; min-width:0; }
+.lb-ava-wrap { position:relative; margin-bottom:6px; }
+.lb-ava { border-radius:50%; object-fit:cover; border:2px solid; background:var(--bg4); display:block; }
+.lb-crown { position:absolute; top:-18px; left:50%; transform:translateX(-50%); color:#f5c542; font-size:16px; }
+.lb-name { font-size:12px; font-weight:600; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:center; }
+.lb-exp { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-dim); margin-bottom:4px; }
+.lb-block {
+  width:100%; border-radius:12px 12px 4px 4px; overflow:hidden; margin-top:6px;
+  display:flex; align-items:flex-start; justify-content:center; padding-top:8px;
+  font-family:'Orbitron',sans-serif; font-weight:900; font-size:18px; color:#0a0a0a;
+  animation: lbGrow .9s var(--spring) both;
+}
+@keyframes lbGrow { from { height:0; opacity:.3; } }
+.lb-list { padding:6px 22px 40px; display:flex; flex-direction:column; gap:8px; }
+.lb-row { display:flex; align-items:center; gap:12px; background:var(--bg2); border:1px solid var(--border); border-radius:14px; padding:10px 14px; }
+.lb-rank { width:26px; text-align:center; font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--text-dim); flex-shrink:0; }
+.lb-row img { width:32px; height:32px; border-radius:50%; object-fit:cover; background:var(--bg4); flex-shrink:0; }
+.lb-row .nm { flex:1; min-width:0; font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.lb-row .xp { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--text-dim); flex-shrink:0; }
+.lb-empty { text-align:center; padding:30px; color:var(--text-muted); font-size:13px; }
+/* ══ ADDON: CS MODAL ══ */
+.cs-overlay { position:fixed; inset:0; z-index:10000; background:rgba(0,0,0,.7); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); display:none; align-items:center; justify-content:center; padding:20px; }
+.cs-overlay.show { display:flex; }
+.cs-box { width:100%; max-width:360px; background:var(--bg2); border:1px solid var(--border-strong); border-radius:20px; padding:22px; }
+.cs-title { font-size:17px; font-weight:700; margin-bottom:4px; display:flex; align-items:center; gap:8px; }
+.cs-title i { color:var(--green); }
+.cs-sub { font-size:12px; color:var(--text-dim); margin-bottom:12px; }
+.cs-lbl { display:block; font-size:11px; color:var(--text-dim); margin:10px 0 6px; }
+.cs-box input, .cs-box select, .cs-box textarea, .dev-form input, .dev-form select {
+  width:100%; background:var(--bg3); border:1px solid var(--border); border-radius:12px;
+  padding:11px 13px; color:var(--text); font-size:13px; font-family:inherit; outline:none; user-select:text;
+}
+.cs-box textarea { resize:none; }
+.cs-actions, .dev-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:16px; }
+.cs-actions button, .dev-actions button { padding:10px 16px; border-radius:12px; border:1px solid var(--border); background:var(--bg3); color:var(--text); font-size:13px; cursor:pointer; }
+.cs-actions button[type=submit], .dev-actions button[type=submit] { background:var(--text); color:#000; border-color:transparent; font-weight:600; }
+
+/* ══ ADDON: DEV PANEL ══ */
+.dev-card { background:var(--bg2); border:1px solid var(--border); border-radius:18px; padding:18px; margin-bottom:18px; }
+.dev-title { font-weight:700; margin-bottom:12px; font-size:15px; }
+.dev-form { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.dev-form .full { grid-column:1/-1; }
+.dev-check { grid-column:1/-1; font-size:12px; color:var(--text-dim); display:flex; gap:8px; align-items:center; }
+.dev-check input { width:auto; }
+.dev-row { display:flex; justify-content:space-between; align-items:center; gap:10px; background:var(--bg2); border:1px solid var(--border); border-radius:14px; padding:12px 14px; margin-bottom:8px; }
+.dev-row small { color:var(--text-dim); margin-left:6px; }
+.dev-row-act { display:flex; gap:6px; flex-shrink:0; }
+.dev-row-act button { padding:6px 10px; border-radius:9px; border:1px solid var(--border); background:var(--bg3); color:var(--text); font-size:12px; cursor:pointer; }
+.dev-row-act .del { color:var(--red); }
+/* ══ ADDON: LOGIN BARU ══ */
+.lg-bg { position:absolute; inset:0; overflow:hidden; pointer-events:none; }
+.lg-orb { position:absolute; border-radius:50%; filter:blur(90px); opacity:.22; animation: lgFloat 14s ease-in-out infinite alternate; }
+.lg-orb.o1 { width:420px; height:420px; background:#fff; top:-140px; left:-120px; }
+.lg-orb.o2 { width:360px; height:360px; background:#6b7280; bottom:-130px; right:-100px; animation-delay:-6s; }
+@keyframes lgFloat { 0%{transform:translate(0,0) scale(1)} 100%{transform:translate(40px,30px) scale(1.15)} }
+.lg-grid {
+  position:absolute; inset:0;
+  background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+  background-size:40px 40px;
+  mask-image: radial-gradient(ellipse at center, black 25%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 25%, transparent 75%);
+}
+.lg-card { max-width:400px; padding:38px 28px 26px; border-radius:30px; animation: lgIn .8s var(--spring) both; }
+@keyframes lgIn { from{opacity:0; transform:translateY(24px) scale(.97)} to{opacity:1; transform:none} }
+.lg-logo {
+  width:66px; height:66px; margin:0 auto 18px; border-radius:20px;
+  background: linear-gradient(145deg,#fff,#bdbdbd); color:#000;
+  display:flex; align-items:center; justify-content:center; font-size:28px;
+  animation: lgPulse 3.5s ease-in-out infinite;
+}
+@keyframes lgPulse { 0%,100%{box-shadow:0 10px 30px rgba(255,255,255,.18)} 50%{box-shadow:0 10px 42px rgba(255,255,255,.35)} }
+.lg-brand { font-family:'Space Grotesk',sans-serif; font-size:30px; font-weight:700; letter-spacing:-1px; }
+.lg-brand span { color:var(--text-dim); font-weight:400; }
+.lg-badge {
+  display:inline-flex; align-items:center; gap:7px; margin-top:8px; padding:5px 12px; border-radius:999px;
+  border:1px solid var(--border); background:rgba(255,255,255,.03);
+  font-size:11px; color:var(--text-dim); font-family:'JetBrains Mono',monospace;
+}
+.lg-badge i { color:var(--green); font-size:6px; animation: liveBlink 1.6s infinite; }
+.lg-tag { margin:16px auto 22px; font-size:13px; color:var(--text-dim); line-height:1.6; max-width:300px; }
+.lg-feats { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:22px; }
+.lg-feat {
+  padding:12px 6px; border-radius:14px; background:var(--bg2); border:1px solid var(--border);
+  font-size:11px; color:var(--text-dim); display:flex; flex-direction:column; gap:6px; align-items:center;
+}
+.lg-feat i { font-size:15px; color:var(--text); }
+.lg-google { position:relative; overflow:hidden; }
+.lg-google::before {
+  content:""; position:absolute; top:0; left:-60%; width:40%; height:100%;
+  background: linear-gradient(120deg, transparent, rgba(0,0,0,.08), transparent);
+  animation: lgShine 3.2s infinite;
+}
+@keyframes lgShine { 0%{left:-60%} 60%,100%{left:120%} }
+.lg-trust { display:flex; justify-content:center; gap:16px; margin-top:20px; font-size:11px; color:var(--text-muted); }
+.lg-trust i { margin-right:4px; }
+.lg-foot { margin-top:22px; font-size:11px; color:var(--text-muted); line-height:1.7; }
+.lg-foot a { color:var(--text-dim); text-decoration:underline; text-underline-offset:3px; }
+.lg-foot a:hover { color:var(--text); }
+
+/* ══ ADDON: BANNER PENGUMUMAN ══ */
+.ann-banner { margin:0 22px 14px; padding:14px 16px; border-radius:16px; background:rgba(251,191,36,.07); border:1px solid rgba(251,191,36,.25); font-size:13px; }
+.ann-banner b { display:block; margin-bottom:4px; color:var(--yellow); }
+
+/* ══ ADDON: ADMIN PANEL ══ */
+.adm-tabs { display:flex; gap:8px; overflow-x:auto; padding:0 22px 14px; scrollbar-width:none; }
+.adm-tabs::-webkit-scrollbar { display:none; }
+.adm-tab { flex-shrink:0; padding:8px 14px; border-radius:999px; border:1px solid var(--border); background:var(--bg3); color:var(--text-dim); font-size:12px; cursor:pointer; }
+.adm-tab.active { background:var(--text); color:#000; border-color:transparent; font-weight:600; }
+.adm-pane { display:none; padding:0 22px 40px; }
+.adm-pane.active { display:block; }
+.adm-stats { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+.adm-stat { background:var(--bg2); border:1px solid var(--border); border-radius:16px; padding:16px; }
+.adm-stat b { display:block; font-family:'Space Grotesk',sans-serif; font-size:22px; }
+.adm-stat span { font-size:11px; color:var(--text-dim); }
+.adm-refresh { width:100%; padding:11px; border-radius:12px; border:1px solid var(--border); background:var(--bg3); color:var(--text); font-size:13px; cursor:pointer; }
+.adm-search { width:100%; margin-bottom:12px; background:var(--bg3); border:1px solid var(--border); border-radius:12px; padding:11px 13px; color:var(--text); font-size:13px; font-family:inherit; outline:none; user-select:text; }
+.adm-row { display:flex; justify-content:space-between; align-items:center; gap:10px; background:var(--bg2); border:1px solid var(--border); border-radius:14px; padding:12px 14px; margin-bottom:8px; }
+.adm-row .info { min-width:0; flex:1; }
+.adm-row .info b { display:block; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.adm-row .info small { font-size:11px; color:var(--text-dim); display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.adm-acts { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; max-width:55%; }
+.adm-acts button { padding:6px 9px; border-radius:9px; border:1px solid var(--border); background:var(--bg3); color:var(--text); font-size:11px; cursor:pointer; }
+.adm-acts .danger { color:var(--red); }
+.adm-acts .ok { color:var(--green); }
+.adm-acts .warn { color:var(--yellow); }
+.dev-form textarea { width:100%; background:var(--bg3); border:1px solid var(--border); border-radius:12px; padding:11px 13px; color:var(--text); font-size:13px; font-family:inherit; outline:none; user-select:text; resize:vertical; }
+.dev-form .dev-check input { width:auto; }
+.adm-empty { text-align:center; padding:30px; color:var(--text-muted); font-size:13px; }
+/* ══ ADDON: AKUN ══ */
+.acc-role-badge { display:inline-block; padding:4px 12px; border-radius:999px; font-size:11px; font-weight:700; letter-spacing:.5px; background:var(--text); color:#000; font-family:'JetBrains Mono',monospace; }
+.acc-role-badge.owner { background:#fbbf24; }
+.acc-role-badge.admin { background:#34d399; }
+</style>
+</head>
+<body>
+
+<!-- BACKGROUNDS -->
+<div class="bg-glow"><div class="glow-blob glow-1"></div><div class="glow-blob glow-2"></div><div class="glow-blob glow-3"></div></div>
+<div class="bg-grid"></div>
+<div class="bg-noise"></div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <i class="fa-solid fa-circle-check toast-icon" id="toastIcon"></i>
+  <span id="toastMsg">OK</span>
+</div>
+
+<!-- ══════════════════════════════════════
+     LOGIN SCREEN
+══════════════════════════════════════ -->
+<div id="loginScreen">
+  <div class="lg-bg">
+    <span class="lg-orb o1"></span>
+    <span class="lg-orb o2"></span>
+    <span class="lg-grid"></span>
+  </div>
+
+  <div class="login-card lg-card">
+    <div class="lg-logo"><i class="fa-solid fa-bolt"></i></div>
+    <div class="lg-brand">Yumz<span>Exe</span></div>
+    <div class="lg-badge"><i class="fa-solid fa-circle"></i> Official Community · v2.1</div>
+    <p class="lg-tag">Pusat script, executor, dan tools Roblox yang terverifikasi komunitas.</p>
+
+    <div class="lg-feats">
+      <div class="lg-feat"><i class="fa-solid fa-scroll"></i>Script</div>
+      <div class="lg-feat"><i class="fa-solid fa-bolt"></i>Executor</div>
+      <div class="lg-feat"><i class="fa-solid fa-comments"></i>Live Chat</div>
+    </div>
+
+    <button class="btn-google lg-google" onclick="signInWithGoogle()">
+      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.290-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+      </svg>
+      Lanjutkan dengan Google
+    </button>
+
+    <div class="login-divider">atau</div>
+
+    <button class="btn-guest" onclick="loginAsGuest()">
+      <i class="fa-solid fa-user-secret"></i>
+      Masuk sebagai Tamu
+    </button>
+
+    <div class="lg-trust">
+      <span><i class="fa-solid fa-shield-halved"></i>Aman</span>
+      <span><i class="fa-solid fa-lock"></i>Terenkripsi</span>
+      <span><i class="fa-solid fa-eye-slash"></i>Private</span>
+    </div>
+
+    <div class="lg-foot">
+      Dengan masuk, kamu setuju dengan
+      <a href="https://yumz-exe.vercel.app/t-o-u" target="_blank" rel="noopener">Syarat Penggunaan</a>
+      dan
+      <a href="https://yumz-exe.vercel.app/pp" target="_blank" rel="noopener">Kebijakan Privasi</a>.
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     CHANNEL JOIN MODAL (first-time)
+══════════════════════════════════════ -->
+<div id="channelModal">
+  <div class="channel-sheet">
+    <div class="channel-handle"><div class="handle-bar"></div></div>
+    <div class="channel-inner">
+      <!-- WA icon with rotating ring -->
+      <div class="channel-icon-wrap">
+        <div class="channel-icon-ring">
+          <svg viewBox="0 0 80 80" fill="none">
+            <circle cx="40" cy="40" r="36" stroke="rgba(37,211,102,0.2)" stroke-width="1" stroke-dasharray="6 4"/>
+          </svg>
+          <div class="channel-icon-body"><i class="fa-brands fa-whatsapp"></i></div>
+        </div>
+      </div>
+
+      <div class="channel-title">Join Saluran WA Resmi</div>
+      <div class="channel-desc">Dapatkan info terbaru, script eksklusif, dan notifikasi fix langsung di WhatsApp kamu — gratis, tanpa spam.</div>
+
+      <div class="channel-perks">
+        <div class="channel-perk">
+          <div class="perk-icon"><i class="fa-solid fa-bolt"></i></div>
+          <div class="perk-text">
+            <div class="perk-title">Update Script Eksklusif</div>
+            <div class="perk-sub">Script baru langsung dikirim ke saluran</div>
+          </div>
+        </div>
+        <div class="channel-perk">
+          <div class="perk-icon"><i class="fa-solid fa-wrench"></i></div>
+          <div class="perk-text">
+            <div class="perk-title">Notifikasi Fix & Patch</div>
+            <div class="perk-sub">Tau duluan kalau ada executor yang diperbarui</div>
+          </div>
+        </div>
+        <div class="channel-perk">
+          <div class="perk-icon"><i class="fa-solid fa-shield-halved"></i></div>
+          <div class="perk-text">
+            <div class="perk-title">Peringatan Scam & Hoax</div>
+            <div class="perk-sub">Tim admin aktif monitor info palsu</div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-join-channel" onclick="joinChannel()">
+        <i class="fa-brands fa-whatsapp"></i>
+        Join Saluran Sekarang
+      </button>
+      <button class="btn-skip-channel" onclick="closeChannelModal()">Lewati untuk sekarang</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     WELCOME MODAL
+══════════════════════════════════════ -->
+<div id="welcomeModal">
+  <div class="welcome-card">
+    <img id="welcomeAvatar" class="welcome-avatar" src="" alt="Avatar">
+    <div class="welcome-title"><i class="fa-solid fa-hand-wave" style="font-size:22px; margin-right:6px; color:var(--text-dim);"></i>Selamat Datang!</div>
+    <div class="welcome-desc" id="welcomeName">Halo, selamat bergabung di YumzExe!</div>
+    <button class="btn-close-welcome" onclick="closeWelcome()">Mulai Jelajahi</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     DISCLAIMER MODAL (Arceus X Neo)
+══════════════════════════════════════ -->
+<div id="warningModal">
+  <div class="warning-content" style="border-color:rgba(251,191,36,0.35); box-shadow: 0 0 0 1px rgba(251,191,36,0.08), 0 24px 60px rgba(0,0,0,0.7), 0 0 50px rgba(251,191,36,0.05);">
+    <div class="warning-header">
+      <i class="fa-solid fa-crown" style="color:var(--yellow); font-size:22px;"></i>
+      <div class="warning-title">Arceus X Neo — Disclaimer</div>
+    </div>
+    <div class="warning-text">
+      Link resmi yang dibagikan di <b>Discord Arceus Project</b> saat ini tidak dapat diakses (expired/invalid). Admin YumzExe telah meng-upload ulang file tersebut ke server <span class="mono">SafeFileKu</span> agar tetap bisa diunduh oleh komunitas.<br><br>
+      File yang tersedia <b>tidak dimodifikasi</b> dalam bentuk apapun dan identik dengan distribusi resmi Arceus Project. Download tetap berjalan normal.
+    </div>
+    <button class="btn-warning" id="btnWarningProceed" onclick="proceedToArceus()" disabled style="background:var(--yellow); color:#000;">
+      <i class="fa-solid fa-lock" id="warnLockIcon"></i>
+      <span id="warningTimerText">Baca dulu... (3s)</span>
+    </button>
+    <button class="btn-guest" onclick="closeWarning()" style="margin-top:10px; padding:12px;">Batal</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     TOOL INFO MODAL
+══════════════════════════════════════ -->
+<div id="toolInfoModal">
+  <div class="tool-modal-content">
+    <div class="tool-modal-handle"><div class="handle-bar"></div></div>
+    <button class="tool-modal-close" onclick="closeToolInfo()"><i class="fa-solid fa-times"></i></button>
+    <div class="tool-modal-icon" id="infoIcon"><i class="fa-solid fa-key"></i></div>
+    <div class="tool-modal-title" id="infoTitle">Nama Tool</div>
+    <div class="tool-modal-desc" id="infoDesc">Deskripsi.</div>
+    <div class="tool-steps-title">Cara Penggunaan</div>
+    <div id="infoSteps"></div>
+    <button class="btn-execute" id="infoExecBtn" onclick="executeTool()">
+      <i class="fa-solid fa-bolt"></i> Eksekusi Sekarang
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     EXECUTION PANELS
+══════════════════════════════════════ -->
+
+<!-- Key Bypass -->
+<div class="exec-panel" id="exec-bypass-key">
+  <div class="exec-header">
+    <button class="btn-back" onclick="closeExec('exec-bypass-key')"><i class="fa-solid fa-arrow-left"></i></button>
+    <div class="exec-title">Key System Bypass</div>
+  </div>
+  <div class="exec-content">
+    <div class="info-callout">
+      <strong>Apa itu Key System?</strong> Banyak executor mengharuskan kamu menyelesaikan serangkaian link redirect (Linkvertise, LootLabs, dll.) sebelum mendapat key untuk menggunakan executor. Tool ini bypass proses tersebut.
+    </div>
+    <div class="maint-wrap">
+      <div class="maint-icon"><i class="fa-solid fa-key"></i></div>
+      <div class="maint-title">Sedang Maintenance</div>
+      <div class="maint-desc">Sistem bypass sedang diperbarui untuk menghindari deteksi verifikasi terbaru dari pihak executor.</div>
+      <div class="maint-badge"><i class="fa-solid fa-clock"></i> &nbsp;Estimasi: 2–3 hari</div>
+    </div>
+    <div class="list-grid" style="margin-top:8px;">
+      <div class="item-card" style="opacity:.5; pointer-events:none;">
+        <div class="item-thumb"><i class="fa-solid fa-bolt"></i></div>
+        <div class="item-info"><div class="item-name">Delta Executor</div><div class="item-detail">Android / iOS</div></div>
+        <div class="tool-badge badge-maint">Maint</div>
+      </div>
+      <div class="item-card" style="opacity:.5; pointer-events:none;">
+        <div class="item-thumb"><i class="fa-solid fa-fire"></i></div>
+        <div class="item-info"><div class="item-name">Fluxus</div><div class="item-detail">Android</div></div>
+        <div class="tool-badge badge-maint">Maint</div>
+      </div>
+      <div class="item-card" style="opacity:.5; pointer-events:none;">
+        <div class="item-thumb"><i class="fa-solid fa-star"></i></div>
+        <div class="item-info"><div class="item-name">Arceus X</div><div class="item-detail">Android / iOS</div></div>
+        <div class="tool-badge badge-maint">Maint</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Account Shield -->
+<div class="exec-panel" id="exec-bypass-acc">
+  <div class="exec-header">
+    <button class="btn-back" onclick="closeExec('exec-bypass-acc')"><i class="fa-solid fa-arrow-left"></i></button>
+    <div class="exec-title">Account Shield</div>
+  </div>
+  <div class="exec-content">
+    <div class="info-callout">
+      <strong>Cara kerja:</strong> Tool ini memanggil API Roblox resmi untuk memverifikasi data akun kamu berdasarkan username. Data yang ditampilkan — ID, status ban, jumlah teman — diambil langsung dari server Roblox, bukan database pihak ketiga.
+    </div>
+    <div class="input-group">
+      <input type="text" id="rbxUsername" placeholder="Username Roblox (tanpa @)" autocomplete="off" autocorrect="off" autocapitalize="off">
+      <button class="btn-process" id="btnProcessAcc" onclick="checkRobloxAccount()">
+        <i class="fa-solid fa-search"></i> Scan
+      </button>
+    </div>
+    <div class="account-result" id="accountResult"></div>
+  </div>
+</div>
+
+<!-- Script Architect -->
+<div class="exec-panel" id="exec-gen-script">
+  <div class="exec-header">
+    <button class="btn-back" onclick="closeExec('exec-gen-script')"><i class="fa-solid fa-arrow-left"></i></button>
+    <div class="exec-title">Script Architect</div>
+  </div>
+  <div class="exec-content">
+    <div class="maint-wrap">
+      <div class="maint-icon"><i class="fa-solid fa-code"></i></div>
+      <div class="maint-title">Coming Soon</div>
+      <div class="maint-desc">Modul builder script visual sedang dikembangkan tim YumzExe. Kamu akan bisa bikin script Roblox kustom tanpa coding dari nol.</div>
+      <div class="maint-badge"><i class="fa-solid fa-sparkles"></i> &nbsp;Q4 2025</div>
+    </div>
+  </div>
+</div>
+
+<!-- Anti-Hoax -->
+<div class="exec-panel" id="exec-antihoax">
+  <div class="exec-header">
+    <button class="btn-back" onclick="closeExec('exec-antihoax')"><i class="fa-solid fa-arrow-left"></i></button>
+    <div class="exec-title">Veritas AI</div>
+  </div>
+  <div class="exec-content">
+    <div class="info-callout">
+      <strong>Veritas AI</strong> menggunakan tiga lapisan analisis: terjemahan konteks → pencarian referensi web → analisis fakta berbasis AI. Hasil berupa persentase kepercayaan (0% = hoax, 100% = valid).
+    </div>
+    <textarea id="hoaxInput" placeholder="Paste teks berita, screenshot caption, atau link rumor yang mau kamu cek di sini..." style="width:100%; height:110px; background:var(--bg2); border:1px solid var(--border); border-radius:13px; padding:13px 14px; color:#fff; font-family:'Inter',sans-serif; font-size:13.5px; resize:none; outline:none; margin-bottom:12px; transition: border-color .2s;" onfocus="this.style.borderColor='var(--border-strong)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+    <button class="btn-primary" id="hoaxBtn" onclick="runHoaxCheck()" style="margin-bottom:0;">
+      <i class="fa-solid fa-shield-halved"></i> Mulai Verifikasi
+    </button>
+    <div class="console-panel" id="consolePanel">
+      <div class="console-header">
+        <div class="console-status">
+          <div class="console-status-dot idle" id="consoleDot"></div>
+          <span id="consoleStatusLabel">System Log</span>
+        </div>
+        <span style="font-family:'JetBrains Mono',monospace; font-size:10px;" id="consoleTime"></span>
+      </div>
+      <div class="console-body" id="consoleBody"></div>
+    </div>
+    <div class="hoax-result-card" id="hoaxResult">
+      <div class="hoax-score-big" id="scoreNum">-</div>
+      <div class="hoax-score-label">Tingkat Akurasi Informasi</div>
+      <div class="hoax-meter"><div class="hoax-meter-fill" id="scoreBar" style="width:0%; background:var(--green);"></div></div>
+      <div class="hoax-summary" id="resultSummary"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     APP
+══════════════════════════════════════ -->
+<div class="app">
+  <div class="topbar">
+    <div class="logo">
+      <div class="logo-mark"><i class="fa-solid fa-bolt"></i></div>
+      YumzExe
+    </div>
+    <div class="user-info-wrap" id="userInfo" style="display:none;">
+      <div class="top-acts">
+        <button class="top-act" data-tip="Leaderboard" onclick="switchPage('leaderboard', null)"><i class="fa-solid fa-ranking-star"></i></button>
+        <button class="top-act" data-tip="CS" onclick="openCsModal()"><i class="fa-solid fa-headset"></i></button>
+      </div>
+      <button class="profile-btn" id="profileBtn" onclick="toggleProfileDropdown()">
+        <img id="userAvatarTop" class="p-avatar" src="" alt="User">
+        <span class="p-name" id="userNameLabel"></span>
+        <i class="fa-solid fa-chevron-down p-chevron"></i>
+      </button>
+      <div class="profile-dropdown" id="profileDropdown">
+        <div class="dropdown-header">
+          <img id="dropdownAvatar" src="" alt="User">
+          <div class="dropdown-header-info">
+            <div class="dropdown-username" id="dropdownUsername">User</div>
+            <div class="dropdown-role" id="dropdownRole">Member</div>
+          </div>
+        </div>
+        <button class="dropdown-item" onclick="switchPage('about', document.querySelector('[data-page=about]')); closeProfileDropdown();">
+          <i class="fa-solid fa-user"></i> Profil Saya
+        </button>
+        <button class="dropdown-item" onclick="switchPage('tools', document.querySelector('[data-page=tools]')); closeProfileDropdown();">
+          <i class="fa-solid fa-toolbox"></i> Official Tools
+        </button>
+        <button class="dropdown-item" onclick="joinChannel(); closeProfileDropdown();">
+          <i class="fa-brands fa-whatsapp"></i> Join Saluran WA
+        </button>
+        <button class="dropdown-item" id="devPanelBtn" style="display:none;" onclick="switchPage('devpanel', null); closeProfileDropdown();">
+          <i class="fa-solid fa-user-shield"></i> Admin Panel
+        </button>
+        <button class="dropdown-item danger" id="dropdownLogoutBtn" onclick="handleDropdownLogout()">
+          <i class="fa-solid fa-right-from-bracket"></i> Keluar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOME -->
+  <section class="page active" id="page-home">
+    <div id="annBanner" class="ann-banner" style="display:none"></div>
+    <div class="hero">
+      <div class="hero-badge">Official Release v2.1</div>
+      <h1 class="hero-title">Tools. Script.<br><span class="dim">No Limits.</span></h1>
+      <p class="hero-desc">Pusat komunitas Roblox executor. Script terverifikasi, tools eksklusif, dan info terpercaya — semuanya gratis.</p>
+      <div class="hero-cta-bar">
+        <button class="cta-chip" onclick="switchPage('script', document.querySelector('[data-page=script]'))">
+          <i class="fa-solid fa-scroll"></i> Cari Script
+        </button>
+        <button class="cta-chip" onclick="switchPage('executor', document.querySelector('[data-page=executor]'))">
+          <i class="fa-solid fa-bolt"></i> Lihat Executor
+        </button>
+        <button class="cta-chip" onclick="joinChannel()">
+          <i class="fa-brands fa-whatsapp"></i> Join WA
+        </button>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="live-ring">
+          <svg viewBox="0 0 48 48"><circle class="track" cx="24" cy="24" r="20"/><circle id="batRingVal" class="val" cx="24" cy="24" r="20" stroke="var(--green)" style="stroke-dasharray:125.66;stroke-dashoffset:125.66"/></svg>
+          <i class="fa-solid fa-battery-half"></i>
+        </div>
+        <div class="live-num"><span id="batNum">--</span><i id="batBolt" class="fa-solid fa-bolt" style="display:none;color:var(--yellow);font-size:10px;"></i></div>
+        <div class="stat-lbl">Batre</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon"><i class="fa-solid fa-wifi" style="font-size:20px; color:var(--text-dim);"></i></div>
+        <div class="live-num"><span id="pingDot" class="live-dot"></span><span id="pingNum">--</span></div>
+        <svg class="spark" viewBox="0 0 100 20" preserveAspectRatio="none"><polyline id="pingSpark" points=""/></svg>
+        <div class="stat-lbl">Ping</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon"><i class="fa-solid fa-robot" style="font-size:20px; color:var(--text-dim);"></i></div>
+        <div class="live-num" id="osNum">--</div>
+        <div class="stat-lbl">Android</div>
+      </div>
+    </div>
+
+    <div class="announce-bar" onclick="joinChannel()">
+      <div class="announce-dot"></div>
+      <div class="announce-text">
+        <div class="announce-title">Saluran WA Resmi YumzExe</div>
+        <div class="announce-sub">Script baru + fix executor langsung masuk notif kamu</div>
+      </div>
+      <i class="fa-solid fa-chevron-right announce-arrow"></i>
+    </div>
+
+    <div class="carousel-wrap">
+      <div class="carousel-label">Pengumuman</div>
+      <div class="carousel-track" id="carouselTrack">
+        <div class="carousel-slide">
+          <div class="slide-content">
+            <div class="slide-label">Update</div>
+            <div class="slide-title">YumzExe v2.1 Dirilis</div>
+            <div class="slide-desc">UI baru, login screen premium, dan detail yang lebih keren.</div>
+          </div>
+          <button class="slide-btn" onclick="switchPage('about', document.querySelector('[data-page=about]'))">Lihat</button>
+        </div>
+        <div class="carousel-slide">
+          <div class="slide-content">
+            <div class="slide-label">Komunitas</div>
+            <div class="slide-title">Join Saluran WA</div>
+            <div class="slide-desc">Info terbaru, script eksklusif, dan peringatan scam.</div>
+          </div>
+          <a href="https://whatsapp.com/channel/0029VbD9HztKrWQuuymMCU0w" target="_blank" class="slide-btn">Join</a>
+        </div>
+        <div class="carousel-slide">
+          <div class="slide-content">
+            <div class="slide-label">Paling Populer</div>
+            <div class="slide-title">Arceus X Neo</div>
+            <div class="slide-desc">Executor android terpopuler. Link aman via SafeFileKu.</div>
+          </div>
+          <button class="slide-btn" onclick="switchPage('executor', document.querySelector('[data-page=executor]'))">Cek</button>
+        </div>
+      </div>
+      <div class="carousel-footer">
+        <div class="carousel-dots" id="carouselDots">
+          <div class="dot active"></div><div class="dot"></div><div class="dot"></div>
+        </div>
+        <span class="carousel-count" id="carouselCount">1 / 3</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- EXECUTOR -->
+  <section class="page" id="page-executor">
+    <div class="page-header">
+      <div class="page-title">Executor</div>
+      <div class="page-desc">Executor Roblox terverifikasi komunitas YumzExe.</div>
+    </div>
+
+    <div class="exec-strip">
+      <div class="exec-strip-item"><div class="exec-strip-num" id="execCountAll">0</div><div class="exec-strip-lbl">Tersedia</div></div>
+      <div class="exec-strip-item"><div class="exec-strip-num" id="execCountWorking">0</div><div class="exec-strip-lbl">Working</div></div>
+      <div class="exec-strip-item"><div class="exec-strip-num" id="execCountPatched">0</div><div class="exec-strip-lbl">Patched</div></div>
+    </div>
+
+    <div class="list-grid" id="execList"></div>
+
+    <!-- Disclaimer -->
+    <div style="margin: 20px 22px 0; padding: 14px 16px; background: rgba(251,191,36,0.06); border: 1px solid rgba(251,191,36,0.18); border-radius: 13px; font-size: 12px; color: var(--text-muted); line-height: 1.6;">
+      <i class="fa-solid fa-circle-info" style="color:var(--yellow); margin-right:6px;"></i>
+      Semua executor di daftar ini telah dikonfirmasi working oleh komunitas. Status dapat berubah setelah update Roblox. Selalu cek saluran WA untuk info terbaru.
+    </div>
+  </section>
+
+  <!-- SCRIPT -->
+  <section class="page" id="page-script">
+    <div class="page-header">
+      <div class="page-title">Script Library</div>
+      <div class="page-desc">Database script YumzExe — diperbarui setiap saat.</div>
+    </div>
+    <div class="search-bar">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="text" id="searchScript" placeholder="Cari script (misal: Auto Farm, ESP, God Mode...)" onkeypress="if(event.key==='Enter') fetchScriptBlox()">
+      <span class="search-hint">↵</span>
+    </div>
+    <div class="list-grid" id="scriptGrid">
+      <div style="text-align:center; padding:50px;"><div class="spinner"></div></div>
+    </div>
+  </section>
+
+  <!-- GLOBAL CHAT -->
+  <section class="page" id="page-globalchat">
+    <div class="chat-container">
+      <div class="chat-header">
+        <div class="chat-header-title">Global Chat</div>
+        <div class="chat-live-badge">
+          <div class="chat-live-dot"></div>
+          Live · Server YumzExe
+        </div>
+      </div>
+      <div class="chat-messages" id="chatMessages">
+        <div class="chat-empty">
+          <i class="fa-solid fa-comments"></i>
+          Memuat pesan...
+        </div>
+      </div>
+      <div class="chat-input-box">
+        <input type="text" id="chatInput" placeholder="Ketik pesan..." maxlength="300"
+          onkeypress="if(event.key==='Enter') sendChat()">
+        <button onclick="sendChat()"><i class="fa-solid fa-paper-plane"></i></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- TOOLS -->
+  <section class="page" id="page-leaderboard">
+    <div style="padding:20px 22px 0;">
+      <div style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;letter-spacing:-.5px;">Leaderboard</div>
+      <div style="font-size:12px;color:var(--text-dim);">Top member berdasarkan EXP</div>
+    </div>
+    <div class="lb-podium" id="lbPodium"><div class="spinner" style="margin:40px auto;"></div></div>
+    <div class="lb-list" id="lbList"></div>
+  </section>
+
+  <section class="page" id="page-devpanel">
+    <div class="page-header">
+      <div class="page-title">Admin Panel</div>
+      <div class="page-desc" id="admRoleDesc">Panel pengelola.</div>
+    </div>
+
+    <div class="adm-tabs" id="admTabs">
+      <button class="adm-tab active" data-adm="sum">Ringkasan</button>
+      <button class="adm-tab" data-adm="exe">Executor</button>
+      <button class="adm-tab" data-adm="chat">Chat</button>
+      <button class="adm-tab" data-adm="usr">User</button>
+      <button class="adm-tab" data-adm="ann">Pengumuman</button>
+      <button class="adm-tab owner-only" data-adm="adm" style="display:none;">Admin</button>
+    </div>
+
+    <!-- RINGKASAN -->
+    <div class="adm-pane active" id="admPane-sum">
+      <div class="adm-stats">
+        <div class="adm-stat"><b id="stUsers">0</b><span>Total user</span></div>
+        <div class="adm-stat"><b id="stChat">0</b><span>Total pesan chat</span></div>
+        <div class="adm-stat"><b id="stExe">0</b><span>Executor</span></div>
+        <div class="adm-stat"><b id="stAdm">0</b><span>Admin</span></div>
+      </div>
+      <button class="adm-refresh" onclick="admLoadSummary()"><i class="fa-solid fa-rotate"></i> Refresh</button>
+    </div>
+
+    <!-- EXECUTOR -->
+    <div class="adm-pane" id="admPane-exe">
+      <div class="dev-card">
+        <div class="dev-title" id="dxTitle">Tambah Executor</div>
+        <form id="dxForm" class="dev-form">
+          <input id="dxName" placeholder="Nama executor" required>
+          <input id="dxPlatform" placeholder="Platform (Android & iOS)">
+          <input id="dxDetail" placeholder="Detail (opsional)">
+          <input id="dxUrl" placeholder="Link download">
+          <select id="dxStatus"><option value="working">Working</option><option value="patched">Patched</option></select>
+          <select id="dxTag"><option value="">Tanpa tag</option><option value="TOP">TOP</option><option value="NEW">NEW</option></select>
+          <select id="dxIcon"><option value="fa-bolt">Bolt</option><option value="fa-star">Star</option><option value="fa-crown">Crown</option></select>
+          <input id="dxOrder" type="number" placeholder="Urutan" value="0">
+          <label class="dev-check"><input type="checkbox" id="dxWarning"> Pakai warning (seperti Arceus, tanpa link)</label>
+          <div class="dev-actions full">
+            <button type="button" id="dxCancel">Batal</button>
+            <button type="submit">Simpan</button>
+          </div>
+        </form>
+      </div>
+      <div id="devExecList"></div>
+    </div>
+
+    <!-- CHAT -->
+    <div class="adm-pane" id="admPane-chat">
+      <div id="admChatList"></div>
+    </div>
+
+    <!-- USER -->
+    <div class="adm-pane" id="admPane-usr">
+      <input id="admUserSearch" class="adm-search" placeholder="Cari username atau email">
+      <div id="admUserList"></div>
+    </div>
+
+    <!-- PENGUMUMAN -->
+    <div class="adm-pane" id="admPane-ann">
+      <div class="dev-card">
+        <div class="dev-title">Buat Pengumuman</div>
+        <form id="annForm" class="dev-form">
+          <input id="annTitle" class="full" placeholder="Judul" required>
+          <textarea id="annBody" class="full" rows="3" placeholder="Isi pengumuman" required></textarea>
+          <label class="dev-check"><input type="checkbox" id="annActive" checked> Langsung aktif (tampil di Home)</label>
+          <div class="dev-actions full"><button type="submit">Simpan</button></div>
+        </form>
+      </div>
+      <div id="admAnnList"></div>
+    </div>
+
+    <!-- ADMIN (owner saja) -->
+    <div class="adm-pane" id="admPane-adm">
+      <div class="dev-card">
+        <div class="dev-title">Tambah Admin</div>
+        <form id="admAddForm" class="dev-form">
+          <input id="admAddEmail" class="full" type="email" placeholder="Email Google" required>
+          <div class="dev-actions full"><button type="submit">Tambah</button></div>
+        </form>
+      </div>
+      <div id="admAdminList"></div>
+    </div>
+  </section>
+
+  <section class="page" id="page-tools">
+    <div class="page-header">
+      <div class="page-title">Official Tools</div>
+      <div class="page-desc">Utility suite eksklusif untuk komunitas YumzExe.</div>
+    </div>
+    <div class="tools-list">
+
+      <div class="tool-card" onclick="showToolInfo('bypass-key')">
+        <div class="tool-header">
+          <div class="tool-icon-wrap">
+            <div class="tool-icon"><i class="fa-solid fa-key"></i></div>
+            <div class="tool-name">Key System Bypass</div>
+          </div>
+          <div class="tool-badge badge-maint">Maint</div>
+        </div>
+        <div class="tool-detail-desc">Skip serangkaian link verifikasi (Linkvertise, LootLabs, dll.) pada executor populer. Dapatkan key langsung tanpa iklan panjang.</div>
+        <div class="tool-features">
+          <div class="tool-feature-item"><i class="fa-solid fa-check"></i> Support Delta, Krnl, Fluxus, Arceus</div>
+          <div class="tool-feature-item"><i class="fa-solid fa-check"></i> Proses instan, tanpa redirect</div>
+        </div>
+        <button class="tool-action-btn">Buka Bypass</button>
+      </div>
+
+      <div class="tool-card" onclick="showToolInfo('antihoax')">
+        <div class="tool-header">
+          <div class="tool-icon-wrap">
+            <div class="tool-icon"><i class="fa-solid fa-shield-halved"></i></div>
+            <div class="tool-name">Veritas AI Checker</div>
+          </div>
+          <div class="tool-badge badge-active">Active</div>
+        </div>
+        <div class="tool-detail-desc">Cek apakah suatu informasi adalah hoax, scam, atau valid — menggunakan AI 3 lapisan (translate → web search → analisis fakta).</div>
+        <div class="tool-features">
+          <div class="tool-feature-item"><i class="fa-solid fa-check"></i> Analisis 3 tahap dengan AI</div>
+          <div class="tool-feature-item"><i class="fa-solid fa-check"></i> Output persentase akurasi + penjelasan</div>
+        </div>
+        <button class="tool-action-btn">Cek Fakta</button>
+      </div>
+
+      <div class="tool-card" onclick="showToolInfo('bypass-acc')">
+        <div class="tool-header">
+          <div class="tool-icon-wrap">
+            <div class="tool-icon"><i class="fa-solid fa-user-shield"></i></div>
+            <div class="tool-name">Account Shield</div>
+          </div>
+          <div class="tool-badge badge-active">Active</div>
+        </div>
+        <div class="tool-detail-desc">Verifikasi akun Roblox berdasarkan username. Lihat data lengkap: ID, avatar, jumlah teman, dan status ban akun.</div>
+        <div class="tool-features">
+          <div class="tool-feature-item"><i class="fa-solid fa-check"></i> Data langsung dari API Roblox resmi</div>
+          <div class="tool-feature-item"><i class="fa-solid fa-check"></i> Tampil avatar, ID, dan status ban</div>
+        </div>
+        <button class="tool-action-btn">Pindai Akun</button>
+      </div>
+
+      <div class="tool-card" onclick="showToolInfo('gen-script')">
+        <div class="tool-header">
+          <div class="tool-icon-wrap">
+            <div class="tool-icon"><i class="fa-solid fa-code"></i></div>
+            <div class="tool-name">Script Architect</div>
+          </div>
+          <div class="tool-badge badge-soon">Soon</div>
+        </div>
+        <div class="tool-detail-desc">Builder visual untuk merakit script Roblox kustom. Drag-and-drop modul, tanpa perlu nulis kode manual dari nol.</div>
+        <div class="tool-features">
+          <div class="tool-feature-item"><i class="fa-solid fa-check"></i> Interface modular drag &amp; drop</div>
+          <div class="tool-feature-item"><i class="fa-solid fa-check"></i> Export ke .lua siap pakai</div>
+        </div>
+        <button class="tool-action-btn">Coming Soon</button>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ABOUT -->
+  <section class="page" id="page-about">
+    <div class="page-header"><div class="page-title">Akun</div><div class="page-desc">Profil, progres, dan pengaturan akunmu.</div></div>
+    <div class="about-wrap">
+
+      <!-- Profile card -->
+      <div class="profile-card" id="profileCard" style="display:none;">
+        <div class="profile-avatar-wrap">
+          <img id="aboutAvatar" class="profile-avatar" src="" alt="Profile">
+          <div class="profile-online-ring"></div>
+        </div>
+        <div class="profile-name" id="aboutName">User</div>
+        <div class="profile-email" id="aboutEmail">email@gmail.com</div>
+        <div style="margin:10px 0 16px;"><span id="accRole" class="acc-role-badge">MEMBER</span></div>
+
+        <div class="adm-stats" style="margin-bottom:12px;">
+          <div class="adm-stat"><b id="accExp">0</b><span>Total EXP</span></div>
+          <div class="adm-stat"><b id="accRank">-</b><span>Peringkat</span></div>
+          <div class="adm-stat" style="grid-column:1/-1;"><b id="accSince" style="font-size:16px;">-</b><span>Bergabung sejak</span></div>
+        </div>
+
+        <button id="accAdmin" class="btn-google" onclick="switchPage('devpanel', null)" style="display:none; margin-bottom:10px;">
+          <i class="fa-solid fa-user-shield"></i> Buka Admin Panel
+        </button>
+        <a class="btn-guest" href="https://whatsapp.com/channel/0029VbD9HztKrWQuuymMCU0w" target="_blank" rel="noopener" style="text-decoration:none; margin-bottom:10px;">
+          <i class="fa-brands fa-whatsapp"></i> Saluran WA
+        </a>
+        <button class="btn-guest" onclick="logout()" style="margin-top:4px;">
+          <i class="fa-solid fa-right-from-bracket"></i> Keluar dari akun
+        </button>
+      </div>
+
+      <!-- App info -->
+      <div class="about-section">
+        <div class="about-section-title"><i class="fa-solid fa-bolt"></i> Informasi Aplikasi</div>
+        <div class="about-row"><span class="label">Nama</span><span class="value">YumzExe</span></div>
+        <div class="about-row"><span class="label">Versi</span><span class="value green">v2.1 — Official</span></div>
+        <div class="about-row"><span class="label">Platform</span><span class="value">Web App (Mobile-first)</span></div>
+        <div class="about-row"><span class="label">Status Server</span><span class="value green">Online ✓</span></div>
+        <div class="about-row"><span class="label">Script Database</span><span class="value">YumzExe API v2</span></div>
+      </div>
+
+      <!-- Community info -->
+      <div class="about-section">
+        <div class="about-section-title"><i class="fa-solid fa-people-group"></i> Komunitas</div>
+        <div class="about-row"><span class="label">Fokus</span><span class="value">Roblox Executor</span></div>
+        <div class="about-row"><span class="label">Members WA</span><span class="value">3.400+</span></div>
+        <div class="about-row"><span class="label">Script aktif</span><span class="value">127</span></div>
+        <div class="about-row">
+          <span class="label">Saluran WA</span>
+          <a href="https://whatsapp.com/channel/0029VbD9HztKrWQuuymMCU0w" target="_blank" style="font-size:11px; color:var(--green); font-family:'JetBrains Mono',monospace; text-decoration:none;">Join →</a>
+        </div>
+      </div>
+
+      <!-- Disclaimer -->
+      <div class="about-section">
+        <div class="about-section-title"><i class="fa-solid fa-circle-info"></i> Disclaimer</div>
+        <div style="font-size:12.5px; color:var(--text-muted); line-height:1.7;">
+          YumzExe adalah platform komunitas independen yang tidak berafiliasi dengan Roblox Corporation. Semua executor dan script yang terdaftar adalah milik developer masing-masing. Gunakan dengan bijak dan tanggung jawab.
+        </div>
+      </div>
+
+    </div>
+  </section>
+</div>
+
+<!-- SCRIPT MODAL -->
+<div class="modal" id="scriptModal">
+  <div class="modal-content">
+    <div class="modal-handle"><div class="handle-bar"></div></div>
+    <button class="modal-close" onclick="closeModal()"><i class="fa-solid fa-times"></i></button>
+    <div class="modal-title" id="modalScriptName">Nama Script</div>
+    <div class="item-status" id="modalScriptStatus" style="margin-bottom:4px; font-size:12px;"></div>
+    <div class="code-box" id="modalScriptCode">
+      <button class="btn-copy" onclick="copyScript()"><i class="fa-regular fa-copy"></i> Copy</button>
+      <pre id="codeText">-- Script Code</pre>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="downloadScriptImage()"><i class="fa-solid fa-download"></i> Download PNG</button>
+      <button class="btn-secondary" onclick="closeModal()">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="cs-overlay" id="csOverlay" onclick="if(event.target===this) closeCsModal()">
+  <div class="cs-box">
+    <div class="cs-title"><i class="fa-solid fa-headset"></i> Hubungi CS</div>
+    <div class="cs-sub">Pilih topik dan tulis pesanmu. Pesan otomatis disalin, tinggal paste di WA.</div>
+    <form id="csForm">
+      <label class="cs-lbl">Topik</label>
+      <select id="csTopic">
+        <option>Pertanyaan umum</option>
+        <option>Lapor script / executor</option>
+        <option>Request fitur</option>
+        <option>Masalah akun</option>
+        <option>Lainnya</option>
+      </select>
+      <label class="cs-lbl">Pesan</label>
+      <textarea id="csMsg" rows="4" maxlength="300" placeholder="Tulis singkat keluhan atau pertanyaanmu..." required></textarea>
+      <div class="cs-actions">
+        <button type="button" onclick="closeCsModal()">Batal</button>
+        <button type="submit">Lanjut ke WA</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <button class="nav-item active" data-page="home" onclick="switchPage('home',this)">
+    <span class="nav-icon"><i class="fa-solid fa-house"></i></span>
+    <span class="nav-label">Home</span>
+  </button>
+  <button class="nav-item" data-page="executor" onclick="switchPage('executor',this)">
+    <span class="nav-icon"><i class="fa-solid fa-bolt"></i></span>
+    <span class="nav-label">Executor</span>
+  </button>
+  <button class="nav-item" data-page="script" onclick="switchPage('script',this)">
+    <span class="nav-icon"><i class="fa-solid fa-code"></i></span>
+    <span class="nav-label">Script</span>
+  </button>
+  <button class="nav-item" data-page="globalchat" onclick="switchPage('globalchat',this)">
+    <span class="nav-icon"><i class="fa-solid fa-comments"></i></span>
+    <span class="nav-label">Chat</span>
+  </button>
+  <button class="nav-item" data-page="tools" onclick="switchPage('tools',this)">
+    <span class="nav-icon"><i class="fa-solid fa-toolbox"></i></span>
+    <span class="nav-label">Tools</span>
+  </button>
+  <button class="nav-item" data-page="about" onclick="switchPage('about',this)">
+    <span class="nav-icon"><i class="fa-solid fa-user"></i></span>
+    <span class="nav-label">Akun</span>
+  </button>
+</nav>
+
+<script>
+/* ══ SUPABASE ══ */
+const SUPABASE_URL = "https://jkldzpfehnjefwkmchsu.supabase.co";
+const SUPABASE_KEY = "sb_publishable_ODeOsnSh03NFHyX9nEQQTw_JteoUgPj";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* ══ GLOBAL CHAT ══ */
+let chatChannel = null;
+let chatBusy = false;
+const seenMsgKeys = new Set();
+
+function msgKey(m) {
+  return m.id != null ? 'id:' + m.id : `k:${m.created_at}|${m.user_email}|${m.message}`;
+}
+
+async function initChat() {
+  const box = document.getElementById('chatMessages');
+  if (!box || chatChannel || chatBusy) return;
+  chatBusy = true;
+  box.innerHTML = '<div style="text-align:center; padding:30px;"><div class="spinner" style="margin:0 auto;"></div></div>';
+
+  const { data, error } = await sb.from('global_chat').select('*').order('created_at', { ascending: true }).limit(50);
+  chatBusy = false;
+
+  if (error) {
+    box.innerHTML = '<div class="chat-empty"><i class="fa-solid fa-circle-exclamation" style="color:var(--red);"></i>Gagal memuat chat.</div>';
+    console.error('Chat load error:', error);
+    return;
+  }
+
+  box.innerHTML = '';
+  if (!data || !data.length) {
+    box.innerHTML = '<div class="chat-empty"><i class="fa-regular fa-comment-dots"></i>Belum ada pesan. Jadilah yang pertama!</div>';
+  } else {
+    data.forEach(m => appendMsg(m));
+  }
+
+  chatChannel = sb.channel('chat_realtime')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'global_chat' }, p => appendMsg(p.new))
+    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'global_chat' }, p => {
+      const el = document.querySelector(`#chatMessages [data-id="${p.old.id}"]`);
+      if (el) el.remove();
+    })
+    .subscribe(status => {
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        console.error('Realtime chat status:', status);
+        chatChannel = null;
+      }
+    });
+}
+
+function appendMsg(m) {
+  const box = document.getElementById('chatMessages');
+  if (!box || !m) return;
+  const key = msgKey(m);
+  if (seenMsgKeys.has(key)) return;
+  seenMsgKeys.add(key);
+
+  box.querySelector('.chat-empty')?.remove();
+
+  const cu = firebase.auth().currentUser;
+  const isMe = cu ? cu.email === m.user_email : m.user_email === 'guest@yumz.com';
+
+  const el = document.createElement('div');
+  el.className = `chat-msg ${isMe ? 'me' : 'other'}`;
+  el.dataset.id = m.id ?? '';
+  const nameEl = document.createElement('div');
+  nameEl.className = 'chat-name';
+  nameEl.textContent = isMe ? 'Kamu' : (m.username || 'Anon');
+  const bubble = document.createElement('div');
+  bubble.className = 'chat-bubble';
+  bubble.textContent = m.message;
+  el.append(nameEl, bubble);
+  box.appendChild(el);
+  box.scrollTop = box.scrollHeight;
+}
+
+async function sendChat() {
+  const input = document.getElementById('chatInput');
+  const text = window.Sec ? Sec.cleanText(input.value, 300) : (input.value || '').trim();
+  if (!text) return;
+
+  const user = firebase.auth().currentUser;
+  if (!user) { showToast('Login dulu buat kirim chat!', 'error'); return; }
+
+  if (window.Sec) {
+    if (!Sec.rateLimit('chat', 4, 10000)) { showToast('Pelan-pelan, tunggu sebentar.', 'error'); return; }
+    const spam = Sec.chatSpamCheck(text);
+    if (!spam.ok) { showToast(spam.reason, 'error'); return; }
+  }
+
+  const payload = {
+    user_email: user.email,
+    username: user.displayName ? user.displayName.split(' ')[0] : 'User',
+    message: text
+  };
+  input.value = '';
+
+  const { data, error } = await sb.from('global_chat').insert([payload]).select().single();
+  if (error) {
+    const msg = error.message || '';
+    if (msg.includes('muted')) showToast('Kamu lagi dimute di chat.', 'error');
+    else if (msg.includes('banned')) showToast('Akun kamu dibanned.', 'error');
+    else showToast('Gagal kirim pesan.', 'error');
+    console.error('Send error:', error);
+    input.value = text;
+    return;
+  }
+  appendMsg(data || { ...payload, created_at: new Date().toISOString() });
+}
+
+/* ══ FIREBASE ══ */
+const firebaseConfig = {
+  apiKey: "AIzaSyB8hulLpdcMXZDYBo_zfbykrECG_kme3cM",
+  authDomain: "yummyproject-3f5bb.firebaseapp.com",
+  projectId: "yummyproject-3f5bb",
+  appId: "1:837891726091:web:2832318052a9d1d9ad600e"
+};
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const provider = new firebase.auth.GoogleAuthProvider();
+
+/* ══ AUTH STATE ══ */
+function populateUI(name, av, role) {
+  const firstName = name ? name.split(' ')[0] : 'User';
+  document.getElementById('userNameLabel').textContent = firstName;
+  document.getElementById('userAvatarTop').src = av;
+  document.getElementById('dropdownAvatar').src = av;
+  document.getElementById('dropdownUsername').textContent = name || 'User';
+  document.getElementById('dropdownRole').textContent = role;
+  document.getElementById('userInfo').style.display = 'flex';
+}
+
+const DEV_EMAIL = 'abysukathespike@gmail.com';
+
+auth.onAuthStateChanged((user) => {
+  if (user) {
+    window.isDev = (user.email || '').toLowerCase() === DEV_EMAIL;
+    onUserSignedIn(user).catch(err => console.error(err));
+    document.getElementById('loginScreen').classList.add('hide');
+    const av = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName||'User')}&background=111&color=fff`;
+    populateUI(user.displayName, av, window.isDev ? 'Developer' : 'Google Member');
+    document.getElementById('profileCard').style.display = 'block';
+    document.getElementById('aboutName').textContent = user.displayName || 'User';
+    document.getElementById('aboutEmail').textContent = user.email || '';
+    document.getElementById('aboutAvatar').src = av;
+    document.getElementById('welcomeName').textContent = `Halo, ${user.displayName ? user.displayName.split(' ')[0] : 'User'}! Selamat bergabung.`;
+    document.getElementById('welcomeAvatar').src = av;
+    document.getElementById('welcomeModal').classList.add('show');
+  } else {
+    window.isDev = false;
+    adminRole = null;
+    document.getElementById('loginScreen').classList.remove('hide');
+    document.getElementById('profileCard').style.display = 'none';
+    document.getElementById('userInfo').style.display = 'none';
+  }
+});
+
+function signInWithGoogle() {
+  auth.signInWithPopup(provider).catch(e => showToast(e.message, 'error'));
+}
+
+function loginAsGuest() {
+  alert('Wajib Login pake Google, bos!');
+}
+
+function logout() {
+  closeProfileDropdown();
+  auth.signOut().then(() => location.reload());
+}
+
+/* ══ PROFILE DROPDOWN ══ */
+function toggleProfileDropdown() {
+  const btn = document.getElementById('profileBtn');
+  const drop = document.getElementById('profileDropdown');
+  const isOpen = drop.classList.contains('open');
+  if (isOpen) {
+    btn.classList.remove('open');
+    drop.classList.remove('open');
+  } else {
+    btn.classList.add('open');
+    drop.classList.add('open');
+  }
+}
+
+function closeProfileDropdown() {
+  document.getElementById('profileBtn').classList.remove('open');
+  document.getElementById('profileDropdown').classList.remove('open');
+}
+
+function handleDropdownLogout() {
+  closeProfileDropdown();
+  auth.signOut().then(() => location.reload()).catch(() => location.reload());
+}
+
+// Close dropdown when tapping outside
+document.addEventListener('click', (e) => {
+  const wrap = document.getElementById('userInfo');
+  if (wrap && !wrap.contains(e.target)) closeProfileDropdown();
+});
+
+/* ══ WELCOME ══ */
+function closeWelcome() {
+  document.getElementById('welcomeModal').classList.remove('show');
+  setTimeout(() => {
+    if (!localStorage.getItem('yumz_channel_shown')) showChannelModal();
+  }, 400);
+}
+
+/* ══ CHANNEL MODAL ══ */
+function showChannelModal() {
+  document.getElementById('channelModal').classList.add('show');
+}
+function closeChannelModal() {
+  document.getElementById('channelModal').classList.remove('show');
+  localStorage.setItem('yumz_channel_shown', '1');
+}
+function joinChannel() {
+  window.open('https://whatsapp.com/channel/0029VbD9HztKrWQuuymMCU0w', '_blank');
+  closeChannelModal();
+}
+
+/* ══ NAV ══ */
+function switchPage(id, btn) {
+  if (id === 'devpanel' && !adminRole) { showToast('Akses khusus admin.', 'error'); return; }
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  if (btn) btn.classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (id === 'script' && document.getElementById('scriptGrid').innerHTML.includes('spinner')) fetchScriptBlox();
+  if (id === 'globalchat') initChat();
+  if (id === 'leaderboard') loadLeaderboard();
+  if (id === 'executor') loadExecutors();
+  if (id === 'devpanel') admLoadPane(admActiveName());
+}
+
+/* ══ STATS COUNTER ══ */
+function animateCounters() {
+  document.querySelectorAll('.stat-num').forEach(el => {
+    const target = +el.dataset.target;
+    const start = performance.now();
+    const duration = 1800;
+    const isK = target >= 1000;
+    (function update(now) {
+      const p = Math.min((now - start) / duration, 1);
+      const ease = 1 - Math.pow(1 - p, 3);
+      const val = Math.floor(ease * target);
+      el.textContent = isK ? (val >= 1000 ? (val/1000).toFixed(1)+'k' : val+'') : val + '+';
+      if (p < 1) requestAnimationFrame(update);
+    })(start);
+  });
+}
+setTimeout(animateCounters, 700);
+
+/* ══ CAROUSEL ══ */
+const carTrack = document.getElementById('carouselTrack');
+const carDots  = document.querySelectorAll('.dot');
+const carCount = document.getElementById('carouselCount');
+let carSlide = 0, carPaused = false;
+
+function goToSlide(i) {
+  carSlide = i;
+  carTrack.scrollTo({ left: carTrack.offsetWidth * i, behavior: 'smooth' });
+  carDots.forEach((d,j) => d.classList.toggle('active', j === i));
+  carCount.textContent = `${i+1} / ${carDots.length}`;
+}
+
+setInterval(() => {
+  if (!carPaused) goToSlide((carSlide + 1) % carDots.length);
+}, 3500);
+
+carTrack.addEventListener('touchstart', () => carPaused = true);
+carTrack.addEventListener('touchend',   () => setTimeout(() => carPaused = false, 2200));
+carTrack.addEventListener('mouseenter', () => carPaused = true);
+carTrack.addEventListener('mouseleave', () => carPaused = false);
+
+// Sync dots on manual scroll
+let scrollTimeout;
+carTrack.addEventListener('scroll', () => {
+  clearTimeout(scrollTimeout);
+  scrollTimeout = setTimeout(() => {
+    const i = Math.round(carTrack.scrollLeft / carTrack.offsetWidth);
+    if (i !== carSlide) { carSlide = i; carDots.forEach((d,j) => d.classList.toggle('active', j===i)); carCount.textContent=`${i+1}/${carDots.length}`; }
+  }, 80);
+});
+
+/* ══ ARCEUS WARNING ══ */
+let warnInterval;
+const ARCEUS_URL = "https://safefileku.com/download/ZYyVavdrvoCz1Y1B";
+
+function showArceusWarning() {
+  document.getElementById('warningModal').classList.add('show');
+  let t = 3;
+  const btn  = document.getElementById('btnWarningProceed');
+  const text = document.getElementById('warningTimerText');
+  btn.disabled = true;
+  text.textContent = `Baca dulu... (${t}s)`;
+  clearInterval(warnInterval);
+  warnInterval = setInterval(() => {
+    t--;
+    if (t > 0) {
+      text.textContent = `Baca dulu... (${t}s)`;
+    } else {
+      clearInterval(warnInterval);
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-arrow-up-right-from-square"></i> Lanjut ke Download';
+    }
+  }, 1000);
+}
+function closeWarning()  { document.getElementById('warningModal').classList.remove('show'); clearInterval(warnInterval); }
+function proceedToArceus() { window.open(ARCEUS_URL, '_blank'); closeWarning(); }
+
+/* ══ TOOL MODAL ══ */
+const toolData = {
+  'bypass-key': {
+    icon: 'fa-key', title: 'Key System Bypass',
+    desc: 'Skip serangkaian link redirect (Linkvertise, LootLabs) pada executor populer. Tool ini memproses key bypass secara otomatis sehingga kamu langsung dapat akses executor tanpa harus klik iklan berulang kali.',
+    steps: [
+      'Klik "Eksekusi Sekarang" di bawah.',
+      'Pilih executor yang ingin di-bypass dari daftar tersedia.',
+      'Tunggu proses sinkronisasi key selesai (biasanya <5 detik).',
+      'Copy key yang muncul dan paste di executor kamu.'
+    ]
+  },
+  'antihoax': {
+    icon: 'fa-shield-halved', title: 'Veritas AI Checker',
+    desc: 'Tool ini menggunakan 3 lapisan analisis AI: (1) Terjemahan konteks ke bahasa Inggris untuk akurasi, (2) Pencarian referensi web real-time, (3) Analisis fakta dan scoring kepercayaan. Output berupa persentase: semakin tinggi = semakin valid.',
+    steps: [
+      'Klik "Eksekusi Sekarang" di bawah.',
+      'Paste teks berita, caption screenshot, atau link rumor di kolom input.',
+      'Klik "Mulai Verifikasi" — proses membutuhkan 10–20 detik.',
+      'Baca persentase akurasi dan ringkasan hasil analisis AI.'
+    ]
+  },
+  'bypass-acc': {
+    icon: 'fa-user-shield', title: 'Account Shield',
+    desc: 'Verifikasi data akun Roblox berdasarkan username menggunakan API resmi Roblox. Kamu bisa lihat ID akun, avatar, jumlah teman, dan status ban. Data ditarik langsung dari server Roblox — bukan database pihak ketiga.',
+    steps: [
+      'Klik "Eksekusi Sekarang" di bawah.',
+      'Masukkan username Roblox yang valid (tanpa @).',
+      'Tekan tombol "Scan" dan tunggu hasil muncul.',
+      'Lihat data lengkap: ID, avatar, teman, dan status ban akun.'
+    ]
+  },
+  'gen-script': {
+    icon: 'fa-code', title: 'Script Architect',
+    desc: 'Builder visual modular untuk membuat script Roblox kustom. Drag-and-drop modul fungsi (Auto Farm, ESP, Speed, dll.) dan export hasilnya sebagai file .lua siap pakai — tanpa perlu nulis kode manual dari nol.',
+    steps: [
+      'Tool ini masih dalam tahap pengembangan aktif.',
+      'Tim YumzExe sedang membangun interface drag-and-drop.',
+      'Estimasi rilis: Q4 2025.',
+      'Join saluran WA untuk dapat notifikasi saat dirilis.'
+    ]
+  }
+};
+
+let currentTool = '';
+function showToolInfo(id) {
+  const d = toolData[id]; currentTool = id;
+  document.getElementById('infoIcon').innerHTML = `<i class="fa-solid ${d.icon}"></i>`;
+  document.getElementById('infoTitle').textContent = d.title;
+  document.getElementById('infoDesc').textContent = d.desc;
+  document.getElementById('infoSteps').innerHTML = d.steps.map((s,i) =>
+    `<div class="tool-step"><div class="tool-step-num">${i+1}</div><div class="tool-step-text">${s}</div></div>`
+  ).join('');
+  document.getElementById('toolInfoModal').classList.add('show');
+}
+function closeToolInfo() { document.getElementById('toolInfoModal').classList.remove('show'); }
+function executeTool() { closeToolInfo(); document.getElementById('exec-' + currentTool).classList.add('active'); }
+function closeExec(id) { document.getElementById(id).classList.remove('active'); }
+
+/* ══ SCRIPTBLOX — Anti-CORS V2 Fix ══ */
+const SB_PRIMARY = 'https://scriptblox.com/api/script/search';
+const SB_V2 = 'https://api.scriptblox.com/v2/scripts';
+const SB_IMG_BASE = 'https://scriptblox.com';
+
+function sbFormatNum(n) {
+  if (!n) return '0';
+  return n >= 1000000 ? (n/1000000).toFixed(1)+'M' : n >= 1000 ? (n/1000).toFixed(1)+'k' : String(n);
+}
+function sbTimeAgo(d) {
+  if (!d) return '';
+  const s = Math.floor((Date.now() - new Date(d)) / 1000);
+  if (s < 60) return 'baru saja';
+  if (s < 3600) return Math.floor(s/60)+'m lalu';
+  if (s < 86400) return Math.floor(s/3600)+'j lalu';
+  return Math.floor(s/86400)+'h lalu';
+}
+function sbGetThumb(s) {
+  if (s.image) return s.image.startsWith('http') ? s.image : SB_IMG_BASE + s.image;
+  if (s.game && s.game.imageUrl) return s.game.imageUrl;
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(s.title||s.name||'S')}&background=111&color=fff`;
+}
+
+async function sbGet(url) {
+  const finalUrl = window.location.protocol === 'file:'
+    ? `https://corsproxy.io/?${encodeURIComponent(url)}` : url;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 12000);
+  try {
+    const res = await fetch(finalUrl, { headers: { 'Accept': 'application/json' }, signal: ctrl.signal });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function fetchScriptBlox() {
+  const grid = document.getElementById('scriptGrid');
+  if (!grid) return;
+  const q = (document.getElementById('searchScript').value || '').trim() || 'blox fruits';
+  grid.innerHTML = '<div style="text-align:center; padding:50px;"><div class="spinner"></div></div>';
+
+  let scripts = null;
+  let lastErr = null;
+  try {
+    const j = await sbGet(`${SB_PRIMARY}?q=${encodeURIComponent(q)}&max=20&page=1`);
+    scripts = j?.result?.scripts || j?.data || null;
+  } catch (e) { lastErr = e; }
+
+  if (!scripts || !scripts.length) {
+    try {
+      const j2 = await sbGet(`${SB_V2}?search=${encodeURIComponent(q)}&limit=20&page=1`);
+      scripts = j2?.data || j2?.result?.scripts || null;
+    } catch (e) { lastErr = lastErr || e; }
+  }
+
+  if (!scripts) {
+    grid.innerHTML = lastErr
+      ? `<div style="text-align:center; padding:32px; color:var(--red);">Gagal memuat data.<br><span style="font-size:11px;">${escHtml(lastErr.message)}</span></div>`
+      : '<div style="text-align:center; padding:32px; color:var(--text-muted); font-size:13px;">Script tidak ditemukan.</div>';
+    return;
+  }
+  if (!scripts.length) {
+    grid.innerHTML = '<div style="text-align:center; padding:32px; color:var(--text-muted); font-size:13px;">Script tidak ditemukan.</div>';
+    return;
+  }
+
+  grid.innerHTML = '';
+  scripts.forEach(s => {
+    const card = document.createElement('div');
+    card.className = 'item-card';
+    card.onclick = () => openScriptModal(s);
+    const thumb = sbGetThumb(s);
+    const title = s.title || s.name || 'Script Tanpa Nama';
+    const game = s.game?.name || '';
+    const views = sbFormatNum(s.views);
+    const likes = sbFormatNum(s.likeCount);
+    const ago = sbTimeAgo(s.lastBump || s.createdAt || s.created_at);
+    const isPaid = s.scriptType === 'paid';
+    const isPatched = !!s.isPatched;
+    card.innerHTML = `
+      <img src="${thumb}" class="item-thumb" onerror="this.src='https://ui-avatars.com/api/?name=Script&background=111&color=fff'">
+      <div class="item-info">
+        <div class="item-name">${escHtml(title.length > 42 ? title.slice(0,40)+'…' : title)} ${s.verified ? '✅' : ''} ${isPaid ? '💰' : ''}</div>
+        <div class="item-detail">${escHtml(game)} ${ago}</div>
+        <div class="item-status ${isPatched ? 'status-patched' : 'status-working'}">
+          <i class="fa-solid fa-circle" style="font-size:5px;"></i> ${isPatched ? 'Patched' : 'Working'}
+          <span style="margin-left:8px;">👁️ ${views} ❤️ ${likes}</span>
+        </div>
+      </div>
+      <i class="fa-solid fa-chevron-right"></i>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function openScriptModal(s) {
+  activeScript = s;
+  const title     = s.title || s.name || 'Script';
+  const rawScript = s.script || s.rawScript || '';
+  const game      = s.game?.name || '';
+  const views     = sbFormatNum(s.views);
+  const likes     = sbFormatNum(s.likeCount);
+  const ago       = sbTimeAgo(s.lastBump || s.createdAt || s.created_at);
+  const isPaid    = s.scriptType === 'paid';
+  const isPatched = !!s.isPatched;
+
+  document.getElementById('modalScriptName').textContent = title;
+  document.getElementById('modalScriptStatus').innerHTML = `
+    <span style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:6px;">
+      ${s.verified ? '<span style="color:var(--green); display:flex; align-items:center; gap:4px;"><i class="fa-solid fa-circle-check" style="font-size:11px;"></i> Verified</span>' : '<span style="color:var(--text-muted);">Unverified</span>'}
+      ${game ? `<span style="color:var(--text-muted); font-size:11px;"><i class="fa-solid fa-gamepad" style="font-size:10px;"></i> ${game}</span>` : ''}
+      ${ago ? `<span style="color:var(--text-muted); font-size:11px;"><i class="fa-regular fa-clock" style="font-size:10px;"></i> ${ago}</span>` : ''}
+      <span style="color:var(--text-muted); font-size:11px;"><i class="fa-solid fa-eye" style="font-size:10px;"></i> ${views}</span>
+      <span style="color:var(--text-muted); font-size:11px;"><i class="fa-solid fa-thumbs-up" style="font-size:10px;"></i> ${likes}</span>
+      ${isPaid ? '<span style="color:var(--red); font-size:11px; font-weight:700;">PAID</span>' : ''}
+      ${isPatched ? '<span style="color:var(--text-muted); font-size:11px; text-decoration:line-through;">Patched</span>' : ''}
+    </span>
+  `;
+
+  if (rawScript) {
+    document.getElementById('codeText').textContent = rawScript;
+  } else {
+    // Script field kosong — tampil slug-based loadstring sebagai fallback
+    const slug = s.slug || s._id || '';
+    document.getElementById('codeText').textContent = slug
+      ? `loadstring(game:HttpGet("https://rawscripts.net/raw/${slug}"))()` 
+      : '-- Kode tidak tersedia untuk script ini.';
+  }
+
+  document.getElementById('scriptModal').classList.add('show');
+}
+
+function closeModal() { document.getElementById('scriptModal').classList.remove('show'); activeScript = null; }
+
+function copyScript() {
+  if (!activeScript) return;
+  const raw  = activeScript.script || activeScript.rawScript || '';
+  const slug = activeScript.slug || activeScript._id || '';
+  const text = raw || (slug ? `loadstring(game:HttpGet("https://rawscripts.net/raw/${slug}"))()` : '');
+  if (!text) { showToast('Tidak ada kode untuk di-copy.', 'error'); return; }
+  navigator.clipboard.writeText(text).then(() => showToast('Script di-copy!')).catch(() => showToast('Gagal copy.', 'error'));
+}
+
+/* ══ DOWNLOAD WATERMARK ══ */
+async function downloadScriptImage() {
+  if (!activeScript) return;
+  const s = activeScript;
+  const sTitle = s.title || s.name || 'Script';
+  const imgUrl = sbGetThumb(s) || `https://ui-avatars.com/api/?name=${encodeURIComponent(sTitle)}&background=111&color=fff`;
+  showToast('Menyiapkan gambar...');
+  try {
+    const cover = await new Promise((res, rej) => {
+      const img = new Image(); img.crossOrigin = 'anonymous';
+      img.onload = () => res(img); img.onerror = rej; img.src = imgUrl;
+    });
+    const canvas = document.createElement('canvas');
+    canvas.width = 1200; canvas.height = 675;
+    const ctx = canvas.getContext('2d');
+    const ratio = Math.max(canvas.width / cover.naturalWidth, canvas.height / cover.naturalHeight);
+    const w = cover.naturalWidth * ratio, h = cover.naturalHeight * ratio;
+    ctx.drawImage(cover, (canvas.width-w)/2, (canvas.height-h)/2, w, h);
+    const shade = ctx.createLinearGradient(0, 220, 0, canvas.height);
+    shade.addColorStop(0, 'transparent'); shade.addColorStop(1, 'rgba(0,0,0,0.96)');
+    ctx.fillStyle = shade; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#fff'; ctx.font = '900 54px "Space Grotesk", sans-serif';
+    ctx.fillText('YUMZ', 48, 510);
+    ctx.fillStyle = '#6b7280'; ctx.font = '600 22px "Inter", sans-serif';
+    ctx.fillText('SCRIPT ARCHIVE', 52, 542);
+    ctx.fillStyle = '#fff'; ctx.font = '700 30px "Inter", sans-serif';
+    const displayTitle = sTitle.length > 52 ? sTitle.slice(0, 49) + '...' : sTitle;
+    ctx.fillText(displayTitle, 48, 608);
+    ctx.fillStyle = '#52525b'; ctx.font = '20px "Inter", sans-serif';
+    ctx.fillText('whatsapp.com/channel/0029VbD9HztKrWQuuymMCU0w', 48, 648);
+    canvas.toBlob(blob => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'Yumz-' + sTitle.replace(/[^a-z0-9-]+/gi,'-').slice(0,44) + '.png';
+      document.body.appendChild(a); a.click(); a.remove();
+      showToast('Gambar berhasil didownload!');
+    }, 'image/png');
+  } catch(e) { showToast('Gagal download gambar.', 'error'); }
+}
+
+/* ══ ACCOUNT SHIELD ══ */
+async function checkRobloxAccount() {
+  const uname = document.getElementById('rbxUsername').value.trim();
+  if (!uname) { showToast('Masukkan username dulu!'); return; }
+  const btn = document.getElementById('btnProcessAcc');
+  const res  = document.getElementById('accountResult');
+  btn.innerHTML = '<div class="spinner" style="width:15px;height:15px;"></div>';
+  btn.disabled = true;
+  res.classList.remove('show');
+  try {
+    let data = null;
+    try {
+      const r1 = await fetch(`https://api.nexadev.my.id/api/roblox?username=${uname}`);
+      const j1 = await r1.json();
+      if (j1.status) data = j1.data;
+    } catch(e) {}
+    if (!data) {
+      const r2 = await fetch(`https://corsproxy.io/?${encodeURIComponent('https://users.roblox.com/v1/usernames/users')}`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({usernames:[uname], excludeBannedUsers:false})
+      });
+      const j2 = await r2.json();
+      if (j2.data && j2.data.length) {
+        const u = j2.data[0];
+        const avR = await fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${u.id}&size=150x150&format=Png&isCircular=false`);
+        const avJ = await avR.json();
+        data = { name:u.name, displayName:u.displayName, id:u.id, avatar: avJ.data?.[0]?.imageUrl || `https://ui-avatars.com/api/?name=${u.name}`, hasVerifiedBadge:u.hasVerifiedBadge, isBanned:false, friends:'N/A', followings:'N/A' };
+      }
+    }
+    if (data) {
+      res.innerHTML = `
+        <div class="acc-header">
+          <img src="${data.avatar}" class="acc-avatar" onerror="this.src='https://ui-avatars.com/api/?name=${uname}&background=111&color=fff'">
+          <div>
+            <div class="acc-name">${data.name}${data.hasVerifiedBadge?' <i class="fa-solid fa-circle-check" style="font-size:12px;color:var(--green);"></i>':''}</div>
+            <div class="acc-displayname">@${data.displayName}</div>
+          </div>
+        </div>
+        <div class="acc-detail"><span>User ID</span><span>${data.id}</span></div>
+        <div class="acc-detail"><span>Teman</span><span>${data.friends || 0}</span></div>
+        <div class="acc-detail"><span>Following</span><span>${data.followings || 0}</span></div>
+        <div class="acc-detail"><span>Status Ban</span><span style="color:${data.isBanned?'var(--red)':'var(--green)'}">${data.isBanned?'⚠ Banned':'✓ Aman'}</span></div>
+        <div style="font-size:11px; color:var(--text-muted); margin-top:10px; border-top:1px solid var(--border); padding-top:10px; display:flex; align-items:center; gap:6px;">
+          <i class="fa-solid fa-shield-halved"></i> Terverifikasi via Roblox API
+        </div>
+      `;
+      res.classList.add('show');
+    } else {
+      showToast('Akun tidak ditemukan.', 'error');
+    }
+  } catch(e) {
+    showToast('Koneksi API gagal.', 'error');
+  } finally {
+    btn.innerHTML = '<i class="fa-solid fa-search"></i> Scan';
+    btn.disabled = false;
+  }
+}
+
+/* ══ ANTI-HOAX ══ */
+const AI_API = 'https://api.synoxcloud.xyz/ai-chat';
+const AI_KEY = 'FREE';
+
+async function runHoaxCheck() {
+  const input = document.getElementById('hoaxInput').value.trim();
+  if (!input) { showToast('Isi kolom input dulu!'); return; }
+  const btn    = document.getElementById('hoaxBtn');
+  const panel  = document.getElementById('consolePanel');
+  const body   = document.getElementById('consoleBody');
+  const result = document.getElementById('hoaxResult');
+  const dot    = document.getElementById('consoleDot');
+  const label  = document.getElementById('consoleStatusLabel');
+  const time   = document.getElementById('consoleTime');
+
+  panel.classList.add('visible');
+  result.classList.remove('show');
+  body.innerHTML = '';
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="width:15px;height:15px;"></div> Menganalisis...';
+  dot.className = 'console-status-dot running';
+  label.textContent = 'Processing...';
+  time.textContent = new Date().toLocaleTimeString('id-ID');
+
+  const log = (msg, cls='') => {
+    body.innerHTML += `<div class="console-line ${cls}"><span>${msg}</span></div>`;
+    body.scrollTop = body.scrollHeight;
+  };
+
+  try {
+    log('Inisialisasi Veritas AI Engine...');
+    await sleep(300);
+    log('Menterjemahkan klaim ke konteks global...');
+    const r1 = await fetch(`${AI_API}/qwen3-next-80b-a3b-instruct?prompt=${encodeURIComponent('Translate to English: '+input)}&apikey=${AI_KEY}`);
+    await r1.json();
+    log('Terjemahan selesai.', 'ok');
+
+    log('Mencari referensi dan sumber web...');
+    const r2 = await fetch(`${AI_API}/turboseek-ai?q=${encodeURIComponent(input)}&apikey=${AI_KEY}`);
+    const d2  = await r2.json();
+    const refs = d2.result?.references || [];
+    log(`Ditemukan ${refs.length} sumber referensi.`, 'ok');
+
+    log('Menganalisis fakta dengan AI...');
+    const prompt = `Fact check this claim: "${input}". References: "${refs.map(r=>r.title).join('. ')}". Reply ONLY as JSON: {"score": 0-100, "summary": "penjelasan singkat dalam bahasa Indonesia"}`;
+    const r3 = await fetch(`${AI_API}/novaai?text=${encodeURIComponent(prompt)}&apikey=${AI_KEY}`);
+    const d3  = await r3.json();
+
+    let parsed = { score: 50, summary: 'Tidak dapat menganalisis. Coba lagi.' };
+    try {
+      const clean = d3.result.reply.replace(/```json|```/g,'').trim();
+      parsed = JSON.parse(clean);
+    } catch(e) {}
+
+    log('Analisis selesai.', 'ok');
+    dot.className = 'console-status-dot done';
+    label.textContent = 'Done';
+
+    const score = Math.max(0, Math.min(100, Math.round(parsed.score)));
+    const color = score > 60 ? 'var(--green)' : score < 40 ? 'var(--red)' : 'var(--yellow)';
+
+    document.getElementById('scoreNum').textContent = score + '%';
+    document.getElementById('scoreNum').style.color = color;
+    document.getElementById('scoreBar').style.width = score + '%';
+    document.getElementById('scoreBar').style.background = color;
+    document.getElementById('resultSummary').textContent = parsed.summary;
+    result.classList.add('show');
+  } catch(e) {
+    log('Error: ' + e.message, 'err');
+    dot.className = 'console-status-dot idle';
+    label.textContent = 'Error';
+    showToast('API AI sedang sibuk. Coba lagi.', 'error');
+  } finally {
+    btn.innerHTML = '<i class="fa-solid fa-shield-halved"></i> Mulai Verifikasi';
+    btn.disabled = false;
+  }
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+/* ══ TOAST ══ */
+function showToast(msg, type = 'ok') {
+  const toast = document.getElementById('toast');
+  const icon  = document.getElementById('toastIcon');
+  document.getElementById('toastMsg').textContent = msg;
+  icon.className = type === 'error'
+    ? 'fa-solid fa-circle-exclamation toast-icon'
+    : 'fa-solid fa-circle-check toast-icon';
+  icon.style.color = type === 'error' ? 'var(--red)' : 'var(--green)';
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2800);
+}
+
+/* ══ LIVE STATS: BATRE ══ */
+const RING_C = 2 * Math.PI * 20;
+function setRing(pct, color) {
+  const v = document.getElementById('batRingVal');
+  if (!v) return;
+  v.style.strokeDashoffset = RING_C * (1 - Math.max(0, Math.min(100, pct)) / 100);
+  v.style.stroke = color;
+}
+function initBattery() {
+  const numEl = document.getElementById('batNum');
+  if (!numEl) return;
+  if (!navigator.getBattery) { numEl.textContent = 'N/A'; return; }
+  navigator.getBattery().then(b => {
+    const render = () => {
+      const pct = Math.round(b.level * 100);
+      numEl.textContent = pct + '%';
+      setRing(pct, pct > 50 ? 'var(--green)' : pct >= 20 ? 'var(--yellow)' : 'var(--red)');
+      document.getElementById('batBolt').style.display = b.charging ? 'inline-block' : 'none';
+    };
+    render();
+    b.addEventListener('levelchange', render);
+    b.addEventListener('chargingchange', render);
+  }).catch(() => { numEl.textContent = 'N/A'; });
+}
+
+/* ══ LIVE STATS: PING (pause saat tab hidden) ══ */
+const pingHist = [];
+let pingTimer = null;
+async function measurePing() {
+  const valEl = document.getElementById('pingNum');
+  const dot = document.getElementById('pingDot');
+  if (!valEl) return;
+  const t0 = performance.now();
+  try {
+    await fetch('https://api.scriptblox.com', { mode: 'no-cors', cache: 'no-store' });
+    const ms = Math.round(performance.now() - t0);
+    pingHist.push(ms);
+    if (pingHist.length > 12) pingHist.shift();
+    const color = ms < 150 ? 'var(--green)' : ms < 300 ? 'var(--yellow)' : 'var(--red)';
+    valEl.textContent = ms + ' ms';
+    valEl.style.color = color;
+    dot.style.background = color;
+    drawSpark(color);
+  } catch(e) {
+    valEl.textContent = 'Offline';
+    valEl.style.color = 'var(--red)';
+    dot.style.background = 'var(--red)';
+  }
+}
+function drawSpark(color) {
+  const poly = document.getElementById('pingSpark');
+  if (!poly || pingHist.length < 2) return;
+  const max = Math.max(...pingHist, 100), w = 100, h = 20;
+  poly.setAttribute('points', pingHist.map((v, i) =>
+    `${(i / (pingHist.length - 1)) * w},${h - (v / max) * (h - 2) - 1}`).join(' '));
+  poly.parentNode.style.color = color;
+}
+function startPing() {
+  if (pingTimer) return;
+  measurePing();
+  pingTimer = setInterval(measurePing, 5000);
+}
+function stopPing() { clearInterval(pingTimer); pingTimer = null; }
+document.addEventListener('visibilitychange', () => { document.hidden ? stopPing() : startPing(); });
+
+/* ══ LIVE STATS: ANDROID ══ */
+function initDevice() {
+  const el = document.getElementById('osNum');
+  if (el) el.textContent = /android/i.test(navigator.userAgent) ? 'Android' : 'Other';
+}
+
+/* ══ HELPER ══ */
+const escHtml = s => String(s ?? '').replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// Placeholder "?" kalau foto profil belum ada
+const LB_PH = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23151515'/><text x='50' y='66' font-size='52' text-anchor='middle' fill='%236b7280' font-family='sans-serif'>%3F</text></svg>";
+
+/* ══ LEADERBOARD ══ */
+async function loadLeaderboard() {
+  const podium = document.getElementById('lbPodium');
+  const list = document.getElementById('lbList');
+  if (!podium || !list) return;
+  podium.innerHTML = '<div class="spinner" style="margin:40px auto;"></div>';
+  list.innerHTML = '';
+
+  const { data, error } = await sb.from('users').select('*').limit(100);
+  if (error) console.error('Leaderboard error:', error);
+
+  const rows = (data || []).map(u => ({
+    name: u.username || u.name || u.display_name || 'Member',
+    ava: u.avatar_url || u.photo_url || u.avatar || '',
+    exp: Number(u.exp ?? u.xp ?? 0)
+  })).sort((a, b) => b.exp - a.exp).slice(0, 20);
+
+  const cfg = {
+    1: { color:'#f5c542', grad:'linear-gradient(180deg,#f5c542,#b8860b)', h:130, size:68, delay:'.5s' },
+    2: { color:'#d1d5db', grad:'linear-gradient(180deg,#e5e7eb,#9ca3af)', h:100, size:58, delay:'.3s' },
+    3: { color:'#d08a4e', grad:'linear-gradient(180deg,#e0a96d,#8b5a2b)', h:80,  size:58, delay:'.1s' }
+  };
+  // Podium selalu tampil 3 slot (kosong pakai "?")
+  const slot = rank => {
+    const u = rows[rank - 1];
+    const c = cfg[rank];
+    const name = u ? escHtml(u.name) : '—';
+    const exp = u ? sbFormatNum(u.exp) : '0';
+    const ava = u && u.ava ? escHtml(u.ava) : LB_PH;
+    return `
+      <div class="lb-slot">
+        <div class="lb-ava-wrap">
+          ${rank === 1 ? '<i class="fa-solid fa-crown lb-crown"></i>' : ''}
+          <img class="lb-ava" src="${ava}" style="border-color:${c.color};width:${c.size}px;height:${c.size}px"
+               onerror="this.onerror=null;this.src=LB_PH">
+        </div>
+        <div class="lb-name">${name}</div>
+        <div class="lb-exp">${exp} EXP</div>
+        <div class="lb-block" style="height:${c.h}px;background:${c.grad};animation-delay:${c.delay}">${rank}</div>
+      </div>`;
+  };
+  podium.innerHTML = slot(2) + slot(1) + slot(3);
+
+  if (rows.length > 3) {
+    list.innerHTML = rows.slice(3).map((u, i) => `
+      <div class="lb-row">
+        <div class="lb-rank">${i + 4}</div>
+        <img src="${u.ava ? escHtml(u.ava) : LB_PH}" onerror="this.onerror=null;this.src=LB_PH">
+        <div class="nm">${escHtml(u.name)}</div>
+        <div class="xp">${sbFormatNum(u.exp)} EXP</div>
+      </div>`).join('');
+  } else {
+    list.innerHTML = '<div class="lb-empty">Belum ada member di leaderboard.</div>';
+  }
+}
+
+/* ══ EXECUTOR (PUBLIK, dari Supabase) ══ */
+async function loadExecutors() {
+  const box = document.getElementById('execList');
+  if (!box) return;
+  box.innerHTML = '<div class="spinner" style="margin:30px auto;"></div>';
+
+  const { data, error } = await sb.from('executors').select('*').order('sort_order', { ascending: true });
+  if (error) {
+    box.innerHTML = '<div class="lb-empty" style="color:var(--red);">Gagal memuat executor.</div>';
+    console.error('Executor load error:', error);
+    return;
+  }
+  const rows = data || [];
+  document.getElementById('execCountAll').textContent = rows.length;
+  document.getElementById('execCountWorking').textContent = rows.filter(r => r.status !== 'patched').length;
+  document.getElementById('execCountPatched').textContent = rows.filter(r => r.status === 'patched').length;
+  box.innerHTML = rows.length
+    ? rows.map(renderExecCard).join('')
+    : '<div class="lb-empty">Belum ada executor.</div>';
+}
+
+function renderExecCard(r) {
+  const isPatched = r.status === 'patched';
+  const tag = r.tag === 'TOP'
+    ? '<span class="badge-hot" style="background:rgba(251,191,36,0.15); color:var(--yellow); border-color:rgba(251,191,36,0.3);">TOP</span>'
+    : r.tag === 'NEW' ? '<span class="badge-new">NEW</span>' : '';
+  const thumbStyle = r.warning ? 'style="color:var(--yellow);border-color:rgba(251,191,36,0.3);"' : '';
+  const detail = [r.platform, r.detail].filter(Boolean).map(escHtml).join(' — ');
+  const inner = `
+    <div class="item-thumb" ${thumbStyle}><i class="fa-solid ${escHtml(r.icon || 'fa-bolt')}"></i></div>
+    <div class="item-info">
+      <div class="item-name">${escHtml(r.name)} ${tag}</div>
+      <div class="item-detail">${detail}</div>
+      <div class="item-status ${isPatched ? 'status-patched' : 'status-working'}"><i class="fa-solid fa-circle" style="font-size:5px;"></i> ${isPatched ? 'Patched' : 'Working'}</div>
+    </div>
+    <i class="fa-solid ${r.warning ? 'fa-download' : 'fa-arrow-up-right-from-square'}" style="color:var(--text-muted); margin-right:10px; font-size:14px;"></i>`;
+  if (r.warning) {
+    return `<div class="item-card" onclick="showArceusWarning()" style="border-color:rgba(251,191,36,0.3); background: linear-gradient(135deg, rgba(251,191,36,0.04), var(--bg2));">${inner}</div>`;
+  }
+  return `<a href="${escHtml(r.url || '#')}" target="_blank" rel="noopener" class="item-card">${inner}</a>`;
+}
+
+/* ══ ADMIN PANEL ══ */
+let adminRole = null;          // 'owner' | 'admin' | null
+let dxEditId = null;
+let dxRows = [];
+let admUsersCache = [];
+
+const admEl = id => document.getElementById(id);
+const admSpinner = '<div class="spinner" style="margin:30px auto;"></div>';
+const admEmpty = t => `<div class="adm-empty">${t}</div>`;
+const admErr = t => `<div class="adm-empty" style="color:var(--red);">${escHtml(t)}</div>`;
+
+async function resolveAdminRole(email) {
+  const e = (email || '').toLowerCase();
+  if (e === DEV_EMAIL) return 'owner';
+  const { data, error } = await sb.from('admins').select('role').eq('email', e).maybeSingle();
+  if (error) console.error('Admin check error:', error);
+  return data?.role || null;
+}
+
+async function onUserSignedIn(user) {
+  const email = (user.email || '').toLowerCase();
+  adminRole = await resolveAdminRole(email);
+  admEl('devPanelBtn').style.display = adminRole ? '' : 'none';
+  document.querySelectorAll('.owner-only').forEach(el => el.style.display = adminRole === 'owner' ? '' : 'none');
+  admEl('admRoleDesc').textContent = adminRole ? `Login sebagai ${adminRole}.` : 'Panel pengelola.';
+
+  // Sinkron profil ke tabel users. ignoreDuplicates: exp & banned tidak ditimpa.
+  await sb.from('users').upsert([{
+    email,
+    username: (user.displayName || 'User').split(' ')[0],
+    avatar_url: user.photoURL || null
+  }], { onConflict: 'email', ignoreDuplicates: true });
+
+  const { data: me } = await sb.from('users').select('banned').eq('email', email).maybeSingle();
+  if (me?.banned) {
+    alert('Akun kamu dibanned dari YumzExe.');
+    await auth.signOut();
+    location.reload();
+    return;
+  }
+  loadAccountStats(user);
+}
+
+async function loadAccountStats(user) {
+  const email = (user.email || '').toLowerCase();
+  const { data } = await sb.from('users').select('exp').eq('email', email).maybeSingle();
+  const exp = Number(data?.exp) || 0;
+  const { count } = await sb.from('users').select('*', { count: 'exact', head: true }).gt('exp', exp);
+
+  admEl('accExp').textContent = sbFormatNum(exp);
+  admEl('accRank').textContent = data ? '#' + ((count || 0) + 1) : '-';
+  admEl('accSince').textContent = user.metadata?.creationTime
+    ? new Date(user.metadata.creationTime).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+    : '-';
+  const role = adminRole || 'member';
+  const badge = admEl('accRole');
+  badge.textContent = role === 'member' ? 'MEMBER' : role.toUpperCase();
+  badge.className = 'acc-role-badge' + (role === 'member' ? '' : ' ' + role);
+  admEl('accAdmin').style.display = adminRole ? '' : 'none';
+}
+
+document.getElementById('admTabs').addEventListener('click', e => {
+  const btn = e.target.closest('.adm-tab');
+  if (!btn) return;
+  if (btn.dataset.adm === 'adm' && adminRole !== 'owner') return;
+  document.querySelectorAll('.adm-tab').forEach(t => t.classList.toggle('active', t === btn));
+  document.querySelectorAll('.adm-pane').forEach(p => p.classList.toggle('active', p.id === 'admPane-' + btn.dataset.adm));
+  admLoadPane(btn.dataset.adm);
+});
+
+function admActiveName() {
+  return document.querySelector('.adm-tab.active')?.dataset.adm || 'sum';
+}
+function admLoadPane(name) {
+  const loaders = { sum: admLoadSummary, exe: loadDevExecutors, chat: admLoadChat, usr: admLoadUsers, ann: admLoadAnn, adm: admLoadAdmins };
+  loaders[name]?.();
+}
+
+/* ── Ringkasan ── */
+async function admLoadSummary() {
+  const cnt = async t => {
+    const { count } = await sb.from(t).select('*', { count: 'exact', head: true });
+    return count ?? 0;
+  };
+  const [u, c, e, a] = await Promise.all([cnt('users'), cnt('global_chat'), cnt('executors'), cnt('admins')]);
+  admEl('stUsers').textContent = u;
+  admEl('stChat').textContent = c;
+  admEl('stExe').textContent = e;
+  admEl('stAdm').textContent = a;
+}
+
+/* ── Executor ── */
+function dxResetForm() {
+  dxEditId = null;
+  admEl('dxForm').reset();
+  admEl('dxOrder').value = '0';
+  admEl('dxTitle').textContent = 'Tambah Executor';
+}
+
+async function loadDevExecutors() {
+  const box = admEl('devExecList');
+  if (!box || !adminRole) return;
+  box.innerHTML = admSpinner;
+  const { data, error } = await sb.from('executors').select('*').order('sort_order', { ascending: true });
+  if (error) { box.innerHTML = admErr('Gagal: ' + error.message); return; }
+  dxRows = data || [];
+  box.innerHTML = dxRows.length
+    ? dxRows.map(r => `
+        <div class="adm-row">
+          <div class="info"><b>${escHtml(r.name)}</b><small>${escHtml(r.status)} · urutan ${r.sort_order ?? 0}</small></div>
+          <div class="adm-acts">
+            <button onclick="dxEdit('${r.id}')">Edit</button>
+            <button class="danger" onclick="dxDelete('${r.id}')">Hapus</button>
+          </div>
+        </div>`).join('')
+    : admEmpty('Belum ada executor.');
+}
+
+function dxEdit(id) {
+  const r = dxRows.find(x => String(x.id) === String(id));
+  if (!r) return;
+  dxEditId = r.id;
+  admEl('dxName').value = r.name || '';
+  admEl('dxPlatform').value = r.platform || '';
+  admEl('dxDetail').value = r.detail || '';
+  admEl('dxUrl').value = r.url || '';
+  admEl('dxStatus').value = r.status || 'working';
+  admEl('dxTag').value = r.tag || '';
+  admEl('dxIcon').value = r.icon || 'fa-bolt';
+  admEl('dxOrder').value = r.sort_order ?? 0;
+  admEl('dxWarning').checked = !!r.warning;
+  admEl('dxTitle').textContent = 'Edit Executor';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function dxDelete(id) {
+  if (!adminRole || !confirm('Hapus executor ini?')) return;
+  const { error } = await sb.from('executors').delete().eq('id', id);
+  if (error) { showToast('Gagal hapus: ' + error.message, 'error'); return; }
+  showToast('Executor dihapus');
+  if (String(dxEditId) === String(id)) dxResetForm();
+  loadDevExecutors();
+}
+
+admEl('dxForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (!adminRole) return;
+  const warning = admEl('dxWarning').checked;
+  const url = admEl('dxUrl').value.trim();
+  if (!warning && !url) { showToast('Isi link download atau centang warning.', 'error'); return; }
+
+  const payload = {
+    name: admEl('dxName').value.trim(),
+    platform: admEl('dxPlatform').value.trim() || null,
+    detail: admEl('dxDetail').value.trim() || null,
+    url: warning ? null : url,
+    status: admEl('dxStatus').value,
+    tag: admEl('dxTag').value || null,
+    icon: admEl('dxIcon').value,
+    sort_order: parseInt(admEl('dxOrder').value, 10) || 0,
+    warning
+  };
+  const req = dxEditId
+    ? sb.from('executors').update(payload).eq('id', dxEditId)
+    : sb.from('executors').insert([payload]);
+  const { error } = await req;
+  if (error) { showToast('Gagal simpan: ' + error.message, 'error'); return; }
+  showToast(dxEditId ? 'Executor diupdate' : 'Executor ditambahkan');
+  dxResetForm();
+  loadDevExecutors();
+});
+admEl('dxCancel').addEventListener('click', dxResetForm);
+
+/* ── Chat ── */
+async function admLoadChat() {
+  const box = admEl('admChatList');
+  box.innerHTML = admSpinner;
+  const { data, error } = await sb.from('global_chat').select('*').order('created_at', { ascending: false }).limit(100);
+  if (error) { box.innerHTML = admErr(error.message); return; }
+  box.innerHTML = (data || []).map(m => `
+    <div class="adm-row">
+      <div class="info">
+        <b>${escHtml(m.username)} <small style="display:inline">· ${escHtml(m.user_email)}</small></b>
+        <small>${escHtml(m.message)}</small>
+      </div>
+      <div class="adm-acts">
+        <button class="danger" data-act="del-msg" data-id="${m.id}">Hapus</button>
+        <button class="warn" data-act="mute" data-email="${escHtml(m.user_email)}" data-mins="60">Mute 1 jam</button>
+      </div>
+    </div>`).join('') || admEmpty('Belum ada pesan.');
+}
+
+/* ── User ── */
+async function admLoadUsers() {
+  const box = admEl('admUserList');
+  box.innerHTML = admSpinner;
+  const { data, error } = await sb.from('users').select('*').limit(300);
+  if (error) { box.innerHTML = admErr(error.message); return; }
+  admUsersCache = (data || []).sort((a, b) => (Number(b.exp) || 0) - (Number(a.exp) || 0));
+  admRenderUsers();
+}
+
+function admRenderUsers() {
+  const q = admEl('admUserSearch').value.trim().toLowerCase();
+  const rows = admUsersCache.filter(u =>
+    !q || (u.username || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q));
+  admEl('admUserList').innerHTML = rows.map(u => {
+    const exp = Number(u.exp) || 0;
+    const mail = u.email ? escHtml(u.email) : '-';
+    return `
+    <div class="adm-row">
+      <div class="info">
+        <b>${escHtml(u.username || 'User')} ${u.banned ? '<small style="color:var(--red);display:inline">· BANNED</small>' : ''}</b>
+        <small>${mail}</small>
+        <small>${exp} EXP</small>
+      </div>
+      <div class="adm-acts">
+        <button data-act="exp" data-id="${u.id}" data-exp="${exp}">EXP</button>
+        <button class="${u.banned ? 'ok' : 'danger'}" data-act="ban" data-id="${u.id}" data-val="${u.banned ? '0' : '1'}">${u.banned ? 'Unban' : 'Ban'}</button>
+        ${u.email ? `<button class="warn" data-act="mute" data-email="${mail}" data-mins="60">Mute 1j</button>
+        <button data-act="unmute" data-email="${mail}">Unmute</button>` : ''}
+        <button class="danger" data-act="deluser" data-id="${u.id}">Hapus</button>
+      </div>
+    </div>`;
+  }).join('') || admEmpty('Tidak ada user.');
+}
+
+/* ── Pengumuman ── */
+async function admLoadAnn() {
+  const box = admEl('admAnnList');
+  box.innerHTML = admSpinner;
+  const { data, error } = await sb.from('announcements').select('*').order('created_at', { ascending: false }).limit(50);
+  if (error) { box.innerHTML = admErr(error.message); return; }
+  box.innerHTML = (data || []).map(a => `
+    <div class="adm-row">
+      <div class="info"><b>${escHtml(a.title)} ${a.active ? '<small style="color:var(--green);display:inline">· AKTIF</small>' : ''}</b><small>${escHtml(a.body)}</small></div>
+      <div class="adm-acts">
+        <button class="${a.active ? 'warn' : 'ok'}" data-act="ann-toggle" data-id="${a.id}" data-val="${a.active ? '0' : '1'}">${a.active ? 'Nonaktifkan' : 'Aktifkan'}</button>
+        <button class="danger" data-act="ann-del" data-id="${a.id}">Hapus</button>
+      </div>
+    </div>`).join('') || admEmpty('Belum ada pengumuman.');
+}
+
+async function loadAnnouncement() {
+  const box = admEl('annBanner');
+  if (!box) return;
+  const { data } = await sb.from('announcements').select('*').eq('active', true).order('created_at', { ascending: false }).limit(1);
+  const a = data?.[0];
+  if (!a) { box.style.display = 'none'; return; }
+  box.innerHTML = `<b><i class="fa-solid fa-bullhorn"></i> ${escHtml(a.title)}</b><div>${escHtml(a.body)}</div>`;
+  box.style.display = 'block';
+}
+
+admEl('annForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (!adminRole) return;
+  const { error } = await sb.from('announcements').insert([{
+    title: admEl('annTitle').value.trim(),
+    body: admEl('annBody').value.trim(),
+    active: admEl('annActive').checked
+  }]);
+  if (error) { showToast('Gagal: ' + error.message, 'error'); return; }
+  showToast('Pengumuman disimpan');
+  e.target.reset();
+  admEl('annActive').checked = true;
+  admLoadAnn();
+  loadAnnouncement();
+});
+
+/* ── Admin (owner saja) ── */
+async function admLoadAdmins() {
+  const box = admEl('admAdminList');
+  if (adminRole !== 'owner') { box.innerHTML = admEmpty('Khusus owner.'); return; }
+  box.innerHTML = admSpinner;
+  const { data, error } = await sb.from('admins').select('*').order('created_at', { ascending: true });
+  if (error) { box.innerHTML = admErr(error.message); return; }
+  box.innerHTML = (data || []).map(a => `
+    <div class="adm-row">
+      <div class="info"><b>${escHtml(a.email)}</b><small>${escHtml(a.role)}</small></div>
+      <div class="adm-acts">
+        ${a.role === 'owner' ? '<span class="adm-empty" style="padding:0">Owner</span>'
+          : `<button class="danger" data-act="admin-del" data-email="${escHtml(a.email)}">Hapus</button>`}
+      </div>
+    </div>`).join('') || admEmpty('Belum ada admin.');
+}
+
+admEl('admAddForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (adminRole !== 'owner') return;
+  const email = admEl('admAddEmail').value.trim().toLowerCase();
+  const { error } = await sb.from('admins').upsert([{ email, role: 'admin' }], { onConflict: 'email' });
+  if (error) { showToast('Gagal: ' + error.message, 'error'); return; }
+  showToast('Admin ditambahkan');
+  e.target.reset();
+  admLoadAdmins();
+});
+
+/* ── Aksi tombol (delegasi) ── */
+admEl('page-devpanel').addEventListener('click', async e => {
+  const btn = e.target.closest('button[data-act]');
+  if (!btn || !adminRole) return;
+  const { act, id, email, mins, val, exp } = btn.dataset;
+  const run = async (promise, msg) => {
+    const { error } = await promise;
+    if (error) { showToast(error.message, 'error'); return false; }
+    if (msg) showToast(msg);
+    return true;
+  };
+  let changed = false;
+  let annChanged = false;
+
+  switch (act) {
+    case 'del-msg':
+      if (confirm('Hapus pesan ini?')) changed = await run(sb.from('global_chat').delete().eq('id', id), 'Pesan dihapus');
+      break;
+    case 'mute': {
+      const m = Number(mins) || 60;
+      changed = await run(
+        sb.from('mutes').upsert([{ email, until: new Date(Date.now() + m * 60000).toISOString() }], { onConflict: 'email' }),
+        `Dimute ${m >= 1440 ? '1 hari' : m + ' menit'}`);
+      break;
+    }
+    case 'unmute':
+      changed = await run(sb.from('mutes').delete().eq('email', email), 'Mute dilepas');
+      break;
+    case 'exp': {
+      const input = prompt('EXP baru:', exp);
+      if (input === null) break;
+      const num = parseInt(input, 10);
+      if (isNaN(num)) { showToast('Harus angka', 'error'); break; }
+      changed = await run(sb.from('users').update({ exp: num }).eq('id', id), 'EXP diupdate');
+      break;
+    }
+    case 'ban':
+      changed = await run(sb.from('users').update({ banned: val === '1' }).eq('id', id), val === '1' ? 'User dibanned' : 'User di-unban');
+      break;
+    case 'deluser':
+      if (confirm('Hapus data user ini dari tabel users?')) changed = await run(sb.from('users').delete().eq('id', id), 'User dihapus');
+      break;
+    case 'ann-toggle':
+      annChanged = await run(sb.from('announcements').update({ active: val === '1' }).eq('id', id), 'Status pengumuman diubah');
+      break;
+    case 'ann-del':
+      if (confirm('Hapus pengumuman ini?')) annChanged = await run(sb.from('announcements').delete().eq('id', id), 'Pengumuman dihapus');
+      break;
+    case 'admin-del':
+      if (email === DEV_EMAIL) break;
+      if (confirm(`Hapus ${email} dari admin?`)) changed = await run(sb.from('admins').delete().eq('email', email), 'Admin dihapus');
+      break;
+  }
+
+  if (changed) admLoadPane(admActiveName());
+  if (annChanged) { admLoadAnn(); loadAnnouncement(); }
+});
+
+admEl('admUserSearch').addEventListener('input', admRenderUsers);
+
+/* ══ CS MODAL ══ */
+const CS_WA_URL = 'https://whatsapp.com/channel/0029VbD9HztKrWQuuymMCU0w';
+
+function openCsModal() {
+  document.getElementById('csOverlay').classList.add('show');
+}
+function closeCsModal() {
+  document.getElementById('csOverlay').classList.remove('show');
+}
+document.getElementById('csForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const topic = document.getElementById('csTopic').value;
+  const msg = document.getElementById('csMsg').value.trim();
+  const text = `[${topic}] ${msg}`;
+  // buka dulu biar nggak diblok popup, baru salin
+  window.open(CS_WA_URL, '_blank', 'noopener');
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('Pesan disalin, tinggal paste di WA');
+  } catch (err) {
+    showToast('Gagal menyalin, tulis ulang di WA', 'error');
+  }
+  closeCsModal();
+  e.target.reset();
+});
+
+/* ══ SCRIPT LOAD ══ */
+fetchScriptBlox();
+initBattery();
+initDevice();
+startPing();
+loadAnnouncement();
+</script>
+</body>
+</html>
