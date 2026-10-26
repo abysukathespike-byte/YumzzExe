@@ -6,7 +6,495 @@
 <meta name="theme-color" content="#050505">
 <meta name="description" content="YumzExe — Komunitas resmi Roblox executor. Script, tools, dan executor terpercaya.">
 <title>YumzExe — Official Community</title>
-<script src="security.js"></script>
+<script>
+/* =====================================================================
+ * security.js — YumzExe
+ * Lapisan keamanan sisi klien. Load PALING AWAL di <head>.
+ *
+ * CATATAN JUJUR:
+ *  - Semua proteksi di file ini bisa dilewati orang yang paham browser,
+ *    karena kode berjalan di komputer mereka sendiri.
+ *  - Keamanan yang sebenarnya ada di server: Supabase RLS + Edge Function
+ *    yang memverifikasi Firebase ID token.
+ *  - File ini mengurangi serangan umum: XSS, clickjacking, spam, injeksi
+ *    script, dan salah pakai API dari console.
+ * ===================================================================== */
+(function () {
+  'use strict';
+  if (typeof window === 'undefined' || window.Sec) return;
+
+  /* ───────── KONFIGURASI ───────── */
+  const CONFIG = Object.freeze({
+    forceHttps: true,
+    blockEval: true,
+    blockDevShortcuts: true,
+    idleLogoutMs: 60 * 60 * 1000,
+    maxInputLength: 2000,
+    integrityIntervalMs: 5000,
+    allowedFetchHosts: [
+      'googleapis.com', 'gstatic.com', 'firebaseapp.com', 'firebaseio.com',
+      'supabase.co', 'scriptblox.com', 'corsproxy.io', 'ui-avatars.com',
+      'roblox.com', 'rbxcdn.com', 'nexadev.my.id', 'synoxcloud.xyz',
+      'cloudflare.com', 'jsdelivr.net', 'whatsapp.com'
+    ],
+    allowedOpenHosts: [
+      'whatsapp.com', 'vercel.app', 'scriptblox.com', 'roblox.com', 'rawscripts.net',
+      'delta.filenetwork.vip', 'vegax.gg', 'firebaseapp.com', 'google.com'
+    ],
+    allowedScriptHosts: ['cdnjs.cloudflare.com', 'www.gstatic.com', 'cdn.jsdelivr.net', 'fonts.googleapis.com'],
+    allowedFrameHosts: ['firebaseapp.com', 'google.com', 'googleapis.com', 'gstatic.com'],
+    allowedMessageHosts: ['firebaseapp.com', 'google.com', 'googleapis.com', 'gstatic.com', 'web.app']
+  });
+
+  /* ───────── DAFTAR PROTEKSI (untuk audit) ───────── */
+  const MEASURES = [
+    'HTTPS paksa di domain produksi',
+    'Anti-clickjacking (frame-busting)',
+    'Halaman disembunyikan saat di-iframe',
+    'Blok eval()',
+    'Blok setTimeout/setInterval berbasis string',
+    'Blok document.write()',
+    'Whitelist host untuk fetch()',
+    'Blok fetch ke protokol tidak aman',
+    'Whitelist window.open()',
+    'Blok link javascript:/vbscript:/data:',
+    'rel="noopener noreferrer" otomatis di link _blank',
+    'Blok script dari host tidak dikenal',
+    'Blok script inline yang disisipkan dinamis',
+    'Blok iframe/object/embed dari host tidak dikenal',
+    'Blok tag <base> dan meta refresh yang disisipkan',
+    'Hapus atribut href/src/action berbahaya',
+    'Referrer policy ketat',
+    'Whitelist origin postMessage',
+    'Sanitasi HTML (allowlist tag & atribut)',
+    'escapeHtml()',
+    'escapeAttr()',
+    'Normalisasi input (NFKC)',
+    'Hapus karakter kontrol & zero-width/bidi',
+    'Batas panjang input',
+    'Validasi email',
+    'Validasi username',
+    'Validasi URL https',
+    'Safe JSON parse (batas ukuran & anti prototype pollution)',
+    'Safe storage (prefix, blok data sensitif, batas ukuran)',
+    'Random ID aman (crypto.getRandomValues)',
+    'Rate limit berbasis jendela waktu',
+    'Cooldown aksi',
+    'Anti-spam chat (duplikat, karakter berulang, caps)',
+    'Honeypot anti bot',
+    'Cegah double submit form',
+    'Auto logout saat idle',
+    'Blok shortcut DevTools (F12, Ctrl+Shift+I/J/C, Ctrl+U)',
+    'Blok drop file ke halaman',
+    'Sanitasi paste ke input',
+    'Log error terpusat tanpa stack ke UI',
+    'Integrity watch (pulihkan fetch/open jika ditimpa)',
+    'Object Sec dibekukan (Object.freeze)',
+    'Clear session (hapus data yz_)',
+    'Buffer log keamanan'
+  ];
+
+  /* ───────── HELPER DASAR ───────── */
+  const hostMatches = (host, list) => !!host && list.some(h => host === h || host.endsWith('.' + h));
+  const isLocalHost = h => h === 'localhost' || h === '127.0.0.1';
+  const parseUrl = u => { try { return new URL(String(u ?? ''), location.href); } catch (_) { return null; } };
+  const DANGEROUS_URL = /^\s*(javascript|vbscript|data):/i;
+
+  const events = [];
+  const logEvent = (type, detail) => {
+    const entry = { t: Date.now(), type, detail: String(detail ?? '').slice(0, 200) };
+    events.push(entry);
+    if (events.length > 200) events.shift();
+    try { console.warn('[Sec]', type, entry.detail); } catch (_) {}
+  };
+
+  /* 1. HTTPS paksa */
+  if (CONFIG.forceHttps && location.protocol === 'http:' && !isLocalHost(location.hostname)) {
+    location.replace('https:' + location.href.slice(5));
+  }
+
+  /* 2–3. Anti-clickjacking */
+  if (window.top !== window.self) {
+    logEvent('framed', location.href);
+    try { window.top.location = window.self.location; }
+    catch (_) { document.documentElement.style.display = 'none'; }
+  }
+
+  /* 4. Blok eval */
+  const evalStub = function () { logEvent('blocked', 'eval'); throw new Error('Blocked: eval'); };
+  if (CONFIG.blockEval) window.eval = evalStub;
+
+  /* 5. Blok timer berbasis string */
+  const origSetTimeout = window.setTimeout.bind(window);
+  const origSetInterval = window.setInterval.bind(window);
+  window.setTimeout = function (fn, ms, ...rest) {
+    if (typeof fn !== 'function') { logEvent('blocked', 'setTimeout(string)'); return 0; }
+    return origSetTimeout(fn, ms, ...rest);
+  };
+  window.setInterval = function (fn, ms, ...rest) {
+    if (typeof fn !== 'function') { logEvent('blocked', 'setInterval(string)'); return 0; }
+    return origSetInterval(fn, ms, ...rest);
+  };
+
+  /* 6. Blok document.write */
+  document.write = document.writeln = function () { logEvent('blocked', 'document.write'); };
+
+  /* 7–9. Guard fetch & window.open */
+  const originalFetch = window.fetch.bind(window);
+  const guardedFetch = function (input, init) {
+    const raw = typeof input === 'string' || input instanceof URL ? input : (input && input.url);
+    const u = parseUrl(raw);
+    if (!u) return Promise.reject(new TypeError('Blocked: URL tidak valid'));
+    const okProto = u.protocol === 'https:'
+      || (u.protocol === 'http:' && isLocalHost(u.hostname))
+      || (location.protocol === 'file:' && u.protocol === 'file:');
+    if (!okProto) { logEvent('blocked', 'fetch proto ' + u.protocol); return Promise.reject(new TypeError('Blocked: protokol tidak aman')); }
+    if (u.hostname !== location.hostname && !hostMatches(u.hostname, CONFIG.allowedFetchHosts)) {
+      logEvent('blocked', 'fetch host ' + u.hostname);
+      return Promise.reject(new TypeError('Blocked: host tidak diizinkan'));
+    }
+    return originalFetch(input, init);
+  };
+  window.fetch = guardedFetch;
+
+  const originalOpen = window.open.bind(window);
+  const guardedOpen = function (url, target, features) {
+    const raw = url == null ? '' : String(url);
+    if (raw === '' || raw === 'about:blank') return originalOpen(url, target, features);
+    const u = parseUrl(raw);
+    if (u && (u.origin === location.origin || (u.protocol === 'https:' && hostMatches(u.hostname, CONFIG.allowedOpenHosts)))) {
+      return originalOpen(url, target, features);
+    }
+    logEvent('blocked', 'open ' + raw.slice(0, 120));
+    return null;
+  };
+  window.open = guardedOpen;
+
+  /* 10–11. Link berbahaya & rel aman */
+  const addRel = a => {
+    const set = new Set((a.getAttribute('rel') || '').split(/\s+/).filter(Boolean));
+    set.add('noopener');
+    set.add('noreferrer');
+    a.setAttribute('rel', [...set].join(' '));
+  };
+  document.addEventListener('click', e => {
+    const a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+    if (a && DANGEROUS_URL.test(a.getAttribute('href') || '')) {
+      e.preventDefault();
+      logEvent('blocked', 'link ' + a.getAttribute('href').slice(0, 80));
+    }
+  }, true);
+
+  /* 16. Referrer policy */
+  if (!document.querySelector('meta[name="referrer"]')) {
+    const m = document.createElement('meta');
+    m.name = 'referrer';
+    m.content = 'strict-origin-when-cross-origin';
+    (document.head || document.documentElement).appendChild(m);
+  }
+
+  /* 12–15. Observer: script, iframe, base, meta refresh, atribut berbahaya */
+  const scriptOk = src => {
+    const u = parseUrl(src);
+    return !!u && u.protocol === 'https:' && (u.hostname === location.hostname || hostMatches(u.hostname, CONFIG.allowedScriptHosts));
+  };
+  const frameOk = src => {
+    if (!src || src === 'about:blank') return true;
+    const u = parseUrl(src);
+    return !!u && u.protocol === 'https:' && hostMatches(u.hostname, CONFIG.allowedFrameHosts);
+  };
+  const scrub = node => {
+    if (node.nodeType !== 1) return;
+    const tag = node.tagName;
+    if (tag === 'SCRIPT') {
+      const src = node.getAttribute('src');
+      if (!scriptOk(src)) { logEvent('blocked', 'script ' + (src || 'inline')); node.remove(); }
+      return;
+    }
+    if (tag === 'IFRAME' || tag === 'OBJECT' || tag === 'EMBED') {
+      const src = node.getAttribute('src') || node.getAttribute('data') || '';
+      if (!frameOk(src)) { logEvent('blocked', tag.toLowerCase() + ' ' + src.slice(0, 80)); node.remove(); }
+      return;
+    }
+    if (tag === 'BASE' || (tag === 'META' && /^refresh$/i.test(node.getAttribute('http-equiv') || ''))) {
+      logEvent('blocked', tag.toLowerCase());
+      node.remove();
+      return;
+    }
+    if (tag === 'A' && node.getAttribute('target') === '_blank') addRel(node);
+    ['href', 'src', 'action', 'formaction'].forEach(attr => {
+      const v = node.getAttribute(attr);
+      if (v && DANGEROUS_URL.test(v) && !/^\s*data:image\//i.test(v)) node.removeAttribute(attr);
+    });
+  };
+  const SCAN = 'script,iframe,object,embed,base,meta,a[target],[href],[src],[action],[formaction]';
+  const startObserver = () => {
+    document.querySelectorAll('a[target="_blank"]').forEach(addRel);
+    new MutationObserver(muts => {
+      for (const m of muts) {
+        for (const n of m.addedNodes) {
+          if (n.nodeType !== 1) continue;
+          scrub(n);
+          n.querySelectorAll(SCAN).forEach(scrub);
+        }
+      }
+    }).observe(document.documentElement, { childList: true, subtree: true });
+  };
+  // Mulai setelah semua script statis selesai dimuat, supaya script app tidak ikut terhapus
+  if (document.readyState === 'complete') startObserver();
+  else window.addEventListener('load', startObserver);
+
+  /* 18. Whitelist origin postMessage */
+  window.addEventListener('message', e => {
+    const u = parseUrl(e.origin);
+    const ok = e.origin === location.origin
+      || (!!u && u.protocol === 'https:' && hostMatches(u.hostname, CONFIG.allowedMessageHosts));
+    if (!ok) { logEvent('blocked', 'message ' + e.origin); e.stopImmediatePropagation(); }
+  }, true);
+
+  /* 19. Sanitasi HTML (allowlist) */
+  const TAGS = new Set(['B', 'STRONG', 'I', 'EM', 'U', 'BR', 'P', 'SPAN', 'DIV', 'SMALL', 'CODE', 'UL', 'OL', 'LI', 'A', 'IMG']);
+  const ATTRS = {
+    A: ['href', 'title', 'target', 'rel'],
+    IMG: ['src', 'alt', 'width', 'height'],
+    SPAN: ['class'], DIV: ['class'], P: ['class'], CODE: ['class'], SMALL: ['class']
+  };
+  const safeUrl = (v, isImg) => {
+    const s = String(v ?? '').replace(/[\u0000-\u001F\u007F\s]+/g, '').toLowerCase();
+    if (s.startsWith('https://') || s.startsWith('//') || s.startsWith('/') || s.startsWith('#')) return true;
+    return isImg && s.startsWith('data:image/') && !s.startsWith('data:image/svg');
+  };
+  const cleanNode = parent => {
+    [...parent.childNodes].forEach(child => {
+      if (child.nodeType === 3) return;
+      if (child.nodeType !== 1) { child.remove(); return; }
+      const tag = child.tagName;
+      if (!TAGS.has(tag)) { child.remove(); return; }
+      const allowed = ATTRS[tag] || [];
+      [...child.attributes].forEach(a => {
+        const name = a.name.toLowerCase();
+        if (!allowed.includes(name)) { child.removeAttribute(a.name); return; }
+        if ((name === 'href' || name === 'src') && !safeUrl(a.value, name === 'src' && tag === 'IMG')) {
+          child.removeAttribute(a.name);
+        }
+      });
+      if (tag === 'A') {
+        if (child.getAttribute('target') === '_blank') child.setAttribute('rel', 'noopener noreferrer');
+        else child.removeAttribute('target');
+      }
+      cleanNode(child);
+    });
+  };
+  const sanitizeHtml = html => {
+    const t = document.createElement('template');
+    t.innerHTML = String(html ?? '');
+    cleanNode(t.content);
+    return t.innerHTML;
+  };
+
+  /* 20–25. Escape & normalisasi input */
+  const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '`': '&#96;' };
+  const escapeHtml = v => String(v ?? '').replace(/[&<>"'`]/g, c => ESC[c]);
+  const escapeAttr = v => String(v ?? '').replace(/[&<>"'`\n\r]/g, c => (ESC[c] || (c === '\n' ? '&#10;' : '&#13;')));
+
+  const cleanText = (v, max = CONFIG.maxInputLength) => {
+    let s = String(v ?? '').normalize('NFKC');
+    s = s.replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g, '');
+    s = s.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '');
+    s = s.replace(/\r\n?/g, '\n');
+    return s.trim().slice(0, max);
+  };
+
+  /* 26–28. Validator */
+  const validateEmail = v => {
+    const s = String(v ?? '');
+    return s.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s);
+  };
+  const validateUsername = v => /^[A-Za-z0-9_.]{3,20}$/.test(String(v ?? ''));
+  const validateHttpsUrl = (v, hosts) => {
+    const u = parseUrl(v);
+    if (!u || u.protocol !== 'https:') return false;
+    return !hosts || hostMatches(u.hostname, hosts);
+  };
+
+  /* 29. Safe JSON parse */
+  const safeJsonParse = (str, maxBytes = 100000) => {
+    if (typeof str !== 'string' || str.length > maxBytes) return null;
+    try {
+      return JSON.parse(str, (k, v) =>
+        (k === '__proto__' || k === 'constructor' || k === 'prototype') ? undefined : v);
+    } catch (_) { return null; }
+  };
+
+  /* 30. Safe storage */
+  const SENSITIVE = /pass|token|secret|key|auth|credential/i;
+  const safeStorage = {
+    get(k) {
+      try {
+        const v = localStorage.getItem('yz_' + k);
+        return v == null ? null : safeJsonParse(v);
+      } catch (_) { return null; }
+    },
+    set(k, v) {
+      if (SENSITIVE.test(k)) { logEvent('blocked', 'storage ' + k); return false; }
+      try {
+        const s = JSON.stringify(v);
+        if (!s || s.length > 65536) return false;
+        localStorage.setItem('yz_' + k, s);
+        return true;
+      } catch (_) { return false; }
+    },
+    remove(k) { try { localStorage.removeItem('yz_' + k); } catch (_) {} }
+  };
+
+  /* 31. Random ID aman */
+  const randomId = (bytes = 16) => {
+    const a = new Uint8Array(bytes);
+    crypto.getRandomValues(a);
+    return [...a].map(b => b.toString(16).padStart(2, '0')).join('');
+  };
+
+  /* 32–33. Rate limit & cooldown */
+  const buckets = new Map();
+  const rateLimit = (key, max, windowMs) => {
+    const now = Date.now();
+    const arr = (buckets.get(key) || []).filter(t => now - t < windowMs);
+    if (arr.length >= max) { buckets.set(key, arr); return false; }
+    arr.push(now);
+    buckets.set(key, arr);
+    return true;
+  };
+  const cooldown = (key, ms) => rateLimit(key, 1, ms);
+
+  /* 34. Anti-spam chat */
+  let lastChat = { text: '', at: 0 };
+  const chatSpamCheck = text => {
+    const s = String(text ?? '');
+    if (/(.)\1{9,}/.test(s)) return { ok: false, reason: 'Terlalu banyak karakter berulang.' };
+    const letters = s.replace(/[^a-zA-Z]/g, '');
+    if (letters.length >= 15 && letters === letters.toUpperCase()) return { ok: false, reason: 'Jangan pakai huruf kapital semua.' };
+    const now = Date.now();
+    if (s === lastChat.text && now - lastChat.at < 15000) return { ok: false, reason: 'Pesan yang sama barusan sudah dikirim.' };
+    lastChat = { text: s, at: now };
+    return { ok: true };
+  };
+
+  /* 35. Honeypot */
+  const addHoneypot = form => {
+    const i = document.createElement('input');
+    i.type = 'text';
+    i.name = 'website';
+    i.tabIndex = -1;
+    i.autocomplete = 'off';
+    i.setAttribute('aria-hidden', 'true');
+    i.style.cssText = 'position:absolute;left:-9999px;opacity:0;height:0;width:0;';
+    form.appendChild(i);
+  };
+  const honeypotTriggered = form => {
+    const i = form.querySelector('input[name="website"]');
+    return !!(i && i.value);
+  };
+
+  /* 36. Cegah double submit */
+  const guardSubmit = (form, handler) => {
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      if (form.dataset.busy === '1') return;
+      form.dataset.busy = '1';
+      const btns = [...form.querySelectorAll('button, input[type=submit]')];
+      btns.forEach(b => { b.disabled = true; });
+      try { await handler(e); }
+      catch (err) { logEvent('error', err && err.message); }
+      finally {
+        form.dataset.busy = '0';
+        btns.forEach(b => { b.disabled = false; });
+      }
+    });
+  };
+
+  /* 37. Auto logout saat idle */
+  let lastActive = Date.now();
+  ['pointerdown', 'keydown', 'touchstart', 'scroll'].forEach(ev =>
+    window.addEventListener(ev, () => { lastActive = Date.now(); }, { passive: true }));
+  origSetInterval(() => {
+    if (Date.now() - lastActive < CONFIG.idleLogoutMs) return;
+    if (typeof auth !== 'undefined' && auth && auth.currentUser) {
+      logEvent('idle', 'auto logout');
+      lastActive = Date.now();
+      auth.signOut().finally(() => location.reload());
+    }
+  }, 30000);
+
+  /* 38. Blok shortcut DevTools (deterrence saja) */
+  if (CONFIG.blockDevShortcuts) {
+    window.addEventListener('keydown', e => {
+      const k = (e.key || '').toLowerCase();
+      const blocked = k === 'f12'
+        || (e.ctrlKey && e.shiftKey && (k === 'i' || k === 'j' || k === 'c'))
+        || (e.ctrlKey && k === 'u');
+      if (blocked) { e.preventDefault(); logEvent('blocked', 'shortcut ' + k); }
+    }, true);
+  }
+
+  /* 39. Blok drop file ke halaman */
+  ['dragover', 'drop'].forEach(type => window.addEventListener(type, e => {
+    const t = e.target;
+    if (t && t.closest && t.closest('input, textarea')) return;
+    e.preventDefault();
+    if (type === 'drop') logEvent('blocked', 'file drop');
+  }));
+
+  /* 40. Sanitasi paste ke input & textarea */
+  document.addEventListener('paste', e => {
+    const t = e.target;
+    if (!(t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement)) return;
+    const raw = (e.clipboardData || window.clipboardData || { getData: () => null }).getData('text');
+    if (raw == null) return;
+    e.preventDefault();
+    const max = t.maxLength > 0 ? t.maxLength : CONFIG.maxInputLength;
+    const cleaned = cleanText(raw, max);
+    const start = t.selectionStart ?? t.value.length;
+    const end = t.selectionEnd ?? start;
+    t.setRangeText(cleaned, start, end, 'end');
+    t.dispatchEvent(new Event('input', { bubbles: true }));
+  }, true);
+
+  /* 41. Log error terpusat (tanpa stack ke UI) */
+  window.addEventListener('error', e => logEvent('error', e.message));
+  window.addEventListener('unhandledrejection', e =>
+    logEvent('rejection', (e.reason && e.reason.message) || e.reason));
+
+  /* 42. Integrity watch: pulihkan jika fetch/open/eval ditimpa */
+  origSetInterval(() => {
+    if (window.fetch !== guardedFetch) { logEvent('tamper', 'fetch'); window.fetch = guardedFetch; }
+    if (window.open !== guardedOpen) { logEvent('tamper', 'open'); window.open = guardedOpen; }
+    if (CONFIG.blockEval && window.eval !== evalStub) { logEvent('tamper', 'eval'); window.eval = evalStub; }
+  }, CONFIG.integrityIntervalMs);
+
+  /* 44. Clear session */
+  const clearSession = () => {
+    try {
+      Object.keys(localStorage).filter(k => k.startsWith('yz_')).forEach(k => localStorage.removeItem(k));
+      sessionStorage.clear();
+    } catch (_) {}
+  };
+
+  /* ───────── API PUBLIK (dibekukan agar tidak bisa ditimpa) ───────── */
+  const Sec = {
+    cleanText, escapeHtml, escapeAttr, sanitizeHtml,
+    validateEmail, validateUsername, validateHttpsUrl,
+    safeJsonParse, storage: safeStorage, randomId,
+    rateLimit, cooldown, chatSpamCheck,
+    addHoneypot, honeypotTriggered, guardSubmit,
+    clearSession,
+    events: () => events.slice(),
+    measures: () => MEASURES.slice(),
+    measureCount: MEASURES.length
+  };
+  window.Sec = Object.freeze(Sec);
+})();
+
+</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1485,6 +1973,79 @@ body::before {
 .sys-card p { font-size: 14px; color: var(--text-dim); line-height: 1.6; margin-bottom: 20px; }
 .sys-btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 999px;
   background: #fff; color: #000; font-weight: 700; text-decoration: none; font-size: 14px; border: none; cursor: pointer; }
+
+/* ══ FIX v3.4 ══ */
+/* centang badge: putih di atas emas kurang kontras & kecil -> dibuat jelas */
+.vbadge { width:18px; height:18px; margin-left:5px; font-size:18px; }
+.vbadge .fa-certificate { font-size:18px; }
+.vbadge .fa-check { position:absolute; top:0; left:0; right:0; bottom:0; display:flex; align-items:center; justify-content:center; font-size:9px; color:#fff; text-shadow:none; }
+.vb-owner .fa-check { color:#3b2a00; }
+
+/* login: hilangkan backdrop-filter & animasi transform yang bikin glitch */
+#loginScreen, #loginScreen.hide { transform:none !important; }
+.login-card, .lg-card {
+  -webkit-backdrop-filter:none !important; backdrop-filter:none !important;
+  background:#0a0a0a !important; transform:translateZ(0); backface-visibility:hidden;
+  animation: lgFadeIn .5s ease both !important;
+}
+@keyframes lgFadeIn { from { opacity:0; } to { opacity:1; } }
+.lg-orb { filter:blur(70px); will-change:transform; }
+.lg-google::before { animation:none; display:none; }
+
+/* maintenance overlay */
+#maintOverlay { position:fixed; inset:0; z-index:9997; background:#050505; display:none; align-items:center; justify-content:center; padding:24px; }
+#maintOverlay.show { display:flex; }
+
+/* YumzzBot */
+.bot-box { display:flex; flex-direction:column; gap:12px; margin:0 22px; height:calc(100vh - 260px); min-height:320px; }
+.bot-log { flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:10px; padding:14px; border:1px solid var(--border); border-radius:18px; background:var(--bg2); }
+.bot-msg { max-width:85%; padding:10px 14px; border-radius:16px; font-size:13px; line-height:1.55; white-space:pre-wrap; word-break:break-word; background:var(--bg3); align-self:flex-start; }
+.bot-msg.user { align-self:flex-end; background:var(--text); color:#000; }
+.bot-form { display:flex; gap:8px; }
+.bot-form input { flex:1; padding:12px 14px; border-radius:14px; border:1px solid var(--border); background:var(--bg3); color:var(--text); font-size:14px; outline:none; user-select:text; }
+.bot-form button { width:46px; border-radius:14px; border:none; background:var(--text); color:#000; cursor:pointer; }
+.bot-form button:disabled { opacity:.5; }
+
+/* halaman legal (pp & t-o-u) */
+.legal-page { padding-bottom:40px; }
+#page-pp { --bg:#050505; --bg2:#0a0a0a; --border:rgba(255,255,255,0.08); --text:#fff; --dim:#9ca3af; --muted:#6b7280; }
+#page-pp { box-sizing:border-box; margin:0; padding:0; }
+#page-pp { background:var(--bg); color:var(--text); font-family:'Inter', system-ui, -apple-system, sans-serif; line-height:1.7; }
+#page-pp { min-height:100%; padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px); }
+#page-pp .wrap { max-width:760px; margin:0 auto; padding:40px 22px 60px; }
+#page-pp .top { display:flex; justify-content:space-between; align-items:center; margin-bottom:34px; }
+#page-pp .brand { font-family:'Space Grotesk', sans-serif; font-weight:700; font-size:20px; letter-spacing:-.5px; }
+#page-pp .brand span { color:var(--dim); font-weight:400; }
+#page-pp .back { color:var(--dim); text-decoration:none; font-size:13px; border:1px solid var(--border); padding:8px 14px; border-radius:999px; }
+#page-pp .back:hover { color:var(--text); }
+#page-pp h1 { font-family:'Space Grotesk', sans-serif; font-size:30px; letter-spacing:-1px; margin-bottom:6px; }
+#page-pp .meta { color:var(--muted); font-size:13px; margin-bottom:30px; }
+#page-pp h2 { font-family:'Space Grotesk', sans-serif; font-size:18px; margin:30px 0 10px; }
+#page-pp p, #page-pp li { color:#d1d5db; font-size:15px; margin-bottom:10px; }
+#page-pp ul { padding-left:20px; margin-bottom:10px; }
+#page-pp .box { background:var(--bg2); border:1px solid var(--border); border-radius:16px; padding:18px 20px; margin:14px 0; }
+#page-pp a { color:var(--text); }
+#page-pp footer { margin-top:50px; padding-top:20px; border-top:1px solid var(--border); color:var(--muted); font-size:12px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+#page-pp footer a { color:var(--dim); }
+#page-tou { --bg:#050505; --bg2:#0a0a0a; --border:rgba(255,255,255,0.08); --text:#fff; --dim:#9ca3af; --muted:#6b7280; }
+#page-tou { box-sizing:border-box; margin:0; padding:0; }
+#page-tou { background:var(--bg); color:var(--text); font-family:'Inter', system-ui, -apple-system, sans-serif; line-height:1.7; }
+#page-tou { min-height:100%; padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px); }
+#page-tou .wrap { max-width:760px; margin:0 auto; padding:40px 22px 60px; }
+#page-tou .top { display:flex; justify-content:space-between; align-items:center; margin-bottom:34px; }
+#page-tou .brand { font-family:'Space Grotesk', sans-serif; font-weight:700; font-size:20px; letter-spacing:-.5px; }
+#page-tou .brand span { color:var(--dim); font-weight:400; }
+#page-tou .back { color:var(--dim); text-decoration:none; font-size:13px; border:1px solid var(--border); padding:8px 14px; border-radius:999px; }
+#page-tou .back:hover { color:var(--text); }
+#page-tou h1 { font-family:'Space Grotesk', sans-serif; font-size:30px; letter-spacing:-1px; margin-bottom:6px; }
+#page-tou .meta { color:var(--muted); font-size:13px; margin-bottom:30px; }
+#page-tou h2 { font-family:'Space Grotesk', sans-serif; font-size:18px; margin:30px 0 10px; }
+#page-tou p, #page-tou li { color:#d1d5db; font-size:15px; margin-bottom:10px; }
+#page-tou ul { padding-left:20px; margin-bottom:10px; }
+#page-tou .box { background:var(--bg2); border:1px solid var(--border); border-radius:16px; padding:18px 20px; margin:14px 0; }
+#page-tou a { color:var(--text); }
+#page-tou footer { margin-top:50px; padding-top:20px; border-top:1px solid var(--border); color:var(--muted); font-size:12px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+#page-tou footer a { color:var(--dim); }
 </style>
 </head>
 <body>
@@ -1547,9 +2108,9 @@ body::before {
 
     <div class="lg-foot">
       Dengan masuk, kamu setuju dengan
-      <a href="https://yumz-exe.vercel.app/t-o-u" target="_blank" rel="noopener">Syarat Penggunaan</a>
+      <a href="/t-o-u" target="_blank" rel="noopener">Syarat Penggunaan</a>
       dan
-      <a href="https://yumz-exe.vercel.app/pp" target="_blank" rel="noopener">Kebijakan Privasi</a>.
+      <a href="/pp" target="_blank" rel="noopener">Kebijakan Privasi</a>.
     </div>
   </div>
 </div>
@@ -1832,6 +2393,12 @@ body::before {
         <button class="cta-chip" onclick="joinChannel()">
           <i class="fa-brands fa-whatsapp"></i> Join WA
         </button>
+        <button class="cta-chip" onclick="openReport()">
+          <i class="fa-solid fa-flag"></i> Report
+        </button>
+        <button class="cta-chip" onclick="switchPage('yumzzbot', null)">
+          <i class="fa-solid fa-robot"></i> YumzzBot
+        </button>
       </div>
     </div>
 
@@ -1901,6 +2468,159 @@ body::before {
         <span class="carousel-count" id="carouselCount">1 / 3</span>
       </div>
     </div>
+  </section>
+
+  <!-- YUMZZBOT -->
+  <section class="page" id="page-yumzzbot">
+    <div class="page-header">
+      <div class="page-title"><i class="fa-solid fa-robot"></i> YumzzBot</div>
+      <div class="page-desc">Asisten AI YumzExe. Tanya soal website, menu, executor, atau cara pakai fitur.</div>
+    </div>
+    <div class="bot-box">
+      <div class="bot-log" id="botLog">
+        <div class="bot-msg bot">Halo, aku YumzzBot. Mau tanya apa soal YumzExe?</div>
+      </div>
+      <form class="bot-form" id="botForm" autocomplete="off">
+        <input id="botInput" type="text" maxlength="500" placeholder="Tanya YumzzBot...">
+        <button type="submit" id="botSend" aria-label="Kirim"><i class="fa-solid fa-paper-plane"></i></button>
+      </form>
+    </div>
+  </section>
+
+  <!-- KEBIJAKAN PRIVASI -->
+  <section class="page legal-page" id="page-pp">
+
+<div class="wrap">
+  <div class="top">
+    <div class="brand">Yumz<span>Exe</span></div>
+    <a class="back" href="/">← Kembali</a>
+  </div>
+
+  <h1>Kebijakan Privasi</h1>
+  <div class="meta">Berlaku sejak 26 Oktober 2026 · Terakhir diperbarui 26 Oktober 2026</div>
+
+  <p>Kebijakan Privasi ini menjelaskan data apa saja yang dikumpulkan oleh YumzExe ("kami") saat kamu menggunakan website dan layanannya, untuk apa data itu dipakai, dan bagaimana kami melindunginya.</p>
+
+  <h2>1. Data yang kami kumpulkan</h2>
+  <ul>
+    <li><strong>Data akun Google:</strong> nama tampilan, alamat email, dan foto profil dari layanan login Google (Firebase Authentication).</li>
+    <li><strong>Data profil komunitas:</strong> username, foto profil, dan jumlah EXP yang tersimpan di database kami (Supabase).</li>
+    <li><strong>Isi chat:</strong> pesan yang kamu kirim di Global Chat beserta nama dan email akunmu.</li>
+    <li><strong>Data teknis:</strong> jenis perangkat, browser, dan alamat IP yang dicatat secara otomatis oleh server dan penyedia hosting.</li>
+    <li><strong>Data status perangkat:</strong> persentase baterai dan latensi koneksi yang diukur di browser kamu hanya untuk ditampilkan di halaman, tidak dikirim ke server kami.</li>
+  </ul>
+
+  <h2>2. Cara kami menggunakan data</h2>
+  <ul>
+    <li>Menyediakan login, akses fitur, dan tampilan profil.</li>
+    <li>Menampilkan leaderboard dan riwayat chat komunitas.</li>
+    <li>Menjaga keamanan layanan, termasuk mencegah spam, penyalahgunaan, dan akses tidak sah.</li>
+    <li>Memperbaiki layanan berdasarkan error dan performa yang tercatat.</li>
+  </ul>
+
+  <h2>3. Berbagi data</h2>
+  <p>Kami tidak menjual data pribadimu. Data hanya dibagikan kepada penyedia layanan yang kami pakai untuk menjalankan YumzExe, yaitu Google/Firebase untuk login, Supabase untuk database, dan penyedia hosting Vercel. Pesan chat bersifat publik dan bisa dilihat oleh anggota lain.</p>
+
+  <h2>4. Penyimpanan dan keamanan</h2>
+  <p>Kami menerapkan langkah keamanan yang wajar, termasuk koneksi terenkripsi (HTTPS), pembatasan akses ke panel admin, dan pembersihan input. Tidak ada sistem yang sepenuhnya aman, jadi kami tidak bisa menjamin keamanan mutlak.</p>
+
+  <h2>5. Data anak</h2>
+  <p>Layanan ini ditujukan untuk pengguna berusia 13 tahun ke atas. Jika kamu menemukan data anak di bawah usia tersebut terkumpul tanpa izin, hubungi kami agar data itu dihapus.</p>
+
+  <h2>6. Hak kamu</h2>
+  <ul>
+    <li>Meminta salinan data yang kami simpan tentang kamu.</li>
+    <li>Meminta perbaikan atau penghapusan data akunmu.</li>
+    <li>Berhenti menggunakan layanan kapan saja dengan keluar dari akun.</li>
+  </ul>
+
+  <h2>7. Cookie dan penyimpanan lokal</h2>
+  <p>Kami memakai penyimpanan lokal browser untuk menyimpan preferensi, misalnya status pesan selamat datang dan saluran WhatsApp. Kamu bisa menghapusnya lewat pengaturan browser.</p>
+
+  <h2>8. Perubahan kebijakan</h2>
+  <p>Kami dapat memperbarui kebijakan ini sewaktu-waktu. Perubahan akan berlaku sejak tanggal pembaruan ditampilkan di halaman ini.</p>
+
+  <h2>9. Kontak</h2>
+  <div class="box">
+    <p style="margin:0">Pertanyaan tentang privasi bisa disampaikan lewat tombol <strong>CS</strong> di aplikasi, atau lewat Saluran WhatsApp resmi YumzExe.</p>
+  </div>
+
+  <footer>
+    <span>© 2026 YumzExe · Official Community</span>
+    <span><a href="/t-o-u">Syarat Penggunaan</a> · <a href="/">Beranda</a></span>
+  </footer>
+</div>
+
+  </section>
+
+  <!-- SYARAT PENGGUNAAN -->
+  <section class="page legal-page" id="page-tou">
+
+<div class="wrap">
+  <div class="top">
+    <div class="brand">Yumz<span>Exe</span></div>
+    <a class="back" href="/">← Kembali</a>
+  </div>
+
+  <h1>Syarat Penggunaan</h1>
+  <div class="meta">Berlaku sejak 26 Oktober 2026 · Terakhir diperbarui 26 Oktober 2026</div>
+
+  <p>Dengan mengakses atau menggunakan YumzExe ("layanan"), kamu setuju untuk terikat oleh Syarat Penggunaan ini. Jika kamu tidak setuju, jangan gunakan layanan ini.</p>
+
+  <h2>1. Kelayakan akun</h2>
+  <p>Kamu harus berusia minimal 13 tahun dan memberikan data login yang benar. Kamu bertanggung jawab atas seluruh aktivitas yang terjadi di akunmu.</p>
+
+  <h2>2. Penggunaan yang diizinkan</h2>
+  <ul>
+    <li>Menggunakan layanan untuk tujuan yang sah dan sesuai hukum yang berlaku.</li>
+    <li>Menghormati anggota lain di Global Chat dan kanal komunitas.</li>
+    <li>Melaporkan script, executor, atau konten yang bermasalah lewat tombol CS.</li>
+  </ul>
+
+  <h2>3. Penggunaan yang dilarang</h2>
+  <ul>
+    <li>Spam, flood, atau mengirim pesan berulang.</li>
+    <li>Pelecehan, ujaran kebencian, konten seksual, atau ancaman kepada siapa pun.</li>
+    <li>Mencoba menembus keamanan, mengakses panel admin tanpa izin, atau merusak layanan.</li>
+    <li>Menyebarkan malware, tautan penipuan, atau konten yang menyesatkan.</li>
+    <li>Menjual akses akun atau membagikan data login orang lain.</li>
+  </ul>
+
+  <h2>4. Script dan executor pihak ketiga</h2>
+  <p>YumzExe menampilkan script dan executor yang berasal dari pihak ketiga, termasuk ScriptBlox dan penyedia executor lain. Kami tidak menjamin keamanan, keaslian, atau kompatibilitasnya. Gunakan atas risiko kamu sendiri. Kami tidak bertanggung jawab atas akun Roblox yang terkena sanksi, banned, atau kehilangan data akibat penggunaan script atau executor tersebut.</p>
+
+  <h2>5. Konten pengguna</h2>
+  <p>Pesan chat dan data profil yang kamu kirim tetap milikmu, tetapi kamu memberi kami izin untuk menampilkannya di layanan. Kami berhak menghapus konten yang melanggar syarat ini tanpa pemberitahuan.</p>
+
+  <h2>6. Moderasi dan sanksi</h2>
+  <p>Admin dapat menghapus pesan, memberi mute sementara, memblokir akun, atau mengubah data komunitas jika terjadi pelanggaran. Keputusan admin bersifat final untuk menjaga kenyamanan komunitas.</p>
+
+  <h2>7. Ketersediaan layanan</h2>
+  <p>Layanan disediakan "sebagaimana adanya". Kami dapat mengubah, menangguhkan, atau menghentikan fitur kapan saja, dan tidak menjamin layanan bebas gangguan atau bebas kesalahan.</p>
+
+  <h2>8. Batasan tanggung jawab</h2>
+  <p>Sejauh diizinkan hukum, YumzExe dan pengelolanya tidak bertanggung jawab atas kerugian tidak langsung yang timbul dari penggunaan layanan, termasuk kehilangan data, akun, atau akses.</p>
+
+  <h2>9. Hak kekayaan intelektual</h2>
+  <p>Desain, logo, dan kode YumzExe dilindungi. Kamu tidak boleh menyalin atau menjual ulang bagian dari layanan tanpa izin tertulis.</p>
+
+  <h2>10. Perubahan syarat</h2>
+  <p>Kami dapat memperbarui syarat ini sewaktu-waktu. Dengan terus menggunakan layanan setelah perubahan berlaku, kamu dianggap menyetujui syarat yang baru.</p>
+
+  <h2>11. Hukum yang berlaku</h2>
+  <p>Syarat ini tunduk pada hukum Republik Indonesia.</p>
+
+  <h2>12. Kontak</h2>
+  <div class="box">
+    <p style="margin:0">Pertanyaan tentang syarat ini bisa disampaikan lewat tombol <strong>CS</strong> di aplikasi, atau lewat Saluran WhatsApp resmi YumzExe.</p>
+  </div>
+
+  <footer>
+    <span>© 2026 YumzExe · Official Community</span>
+    <span><a href="/pp">Kebijakan Privasi</a> · <a href="/">Beranda</a></span>
+  </footer>
+</div>
+
   </section>
 
   <!-- EXECUTOR -->
@@ -1987,6 +2707,8 @@ body::before {
       <button class="adm-tab" data-adm="chat">Chat</button>
       <button class="adm-tab" data-adm="usr">User</button>
       <button class="adm-tab" data-adm="ann">Pengumuman</button>
+      <button class="adm-tab" data-adm="rep">Laporan</button>
+      <button class="adm-tab owner-only" data-adm="site" style="display:none;">Situs</button>
       <button class="adm-tab owner-only" data-adm="adm" style="display:none;">Admin</button>
     </div>
 
@@ -2059,6 +2781,20 @@ body::before {
         </form>
       </div>
       <div id="admAdminList"></div>
+    </div>
+    <div class="adm-pane" id="admPane-rep">
+      <div id="repList"></div>
+    </div>
+
+    <div class="adm-pane" id="admPane-site">
+      <div class="dev-card">
+        <div class="dev-title"><i class="fa-solid fa-screwdriver-wrench"></i> Mode maintenance</div>
+        <form id="maintForm" class="dev-form">
+          <label class="dev-check full"><input type="checkbox" id="maintOn"> Aktifkan maintenance (user biasa dikunci, admin tetap bisa masuk)</label>
+          <textarea id="maintMsg" class="full" rows="3" placeholder="Pesan maintenance..."></textarea>
+          <div class="dev-actions full"><button type="submit">Simpan</button></div>
+        </form>
+      </div>
     </div>
   </section>
 
@@ -2354,11 +3090,38 @@ body::before {
     <span class="nav-icon"><i class="fa-solid fa-user"></i></span>
     <span class="nav-label">Akun</span>
   </button>
-  <button class="nav-item" data-page="tips" onclick="openModalById('tipsModal')">
-    <span class="nav-icon"><i class="fa-solid fa-circle-question"></i></span>
-    <span class="nav-label">Tips</span>
-  </button>
 </nav>
+
+<div class="cs-overlay" id="reportOverlay" onclick="if(event.target===this) closeReport()">
+  <div class="cs-box">
+    <div class="cs-title"><i class="fa-solid fa-flag"></i> Report</div>
+    <div class="cs-sub">Laporkan script atau executor bermasalah, scam, atau bug. Dev akan cek di panel.</div>
+    <form id="reportForm">
+      <label class="cs-lbl">Kategori</label>
+      <select id="reportCat">
+        <option>Script bermasalah</option>
+        <option>Executor bermasalah</option>
+        <option>Scam / link palsu</option>
+        <option>Bug website</option>
+        <option>Lainnya</option>
+      </select>
+      <label class="cs-lbl">Detail</label>
+      <textarea id="reportMsg" rows="4" maxlength="500" placeholder="Jelaskan singkat apa yang terjadi..." required></textarea>
+      <div class="cs-actions">
+        <button type="button" onclick="closeReport()">Batal</button>
+        <button type="submit" id="reportSend">Kirim</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="maintOverlay">
+  <div class="lg-card login-card" style="max-width:380px;text-align:center;">
+    <div class="lg-logo"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+    <div class="lg-brand">Maintenance</div>
+    <p class="lg-tag" id="maintMsgUser"></p>
+  </div>
+</div>
 
 <script>
 /* ══ SUPABASE ══ */
@@ -2547,6 +3310,9 @@ auth.onAuthStateChanged((user) => {
     applyRoute();
   } else if (window.isGuest) {
     return; // sesi tamu tetap jalan
+  } else if (LEGAL_ROUTES[currentRoutePath()]) {
+    showLegal(LEGAL_ROUTES[currentRoutePath()]);
+    return;
   } else {
     window.isDev = false;
     adminRole = null;
@@ -2726,8 +3492,10 @@ function openInbox() {
 /* ── Routing: URL bisa dibuka langsung, sisanya 404 / easter egg ── */
 const ROUTES = {
   '/': 'home', '/executor': 'executor', '/script': 'script', '/chat': 'globalchat',
-  '/tools': 'tools', '/akun': 'about', '/leaderboard': 'leaderboard'
+  '/tools': 'tools', '/akun': 'about', '/leaderboard': 'leaderboard',
+  '/bot': 'yumzzbot', '/pp': 'pp', '/t-o-u': 'tou'
 };
+const LEGAL_ROUTES = { '/pp': 'pp', '/t-o-u': 'tou' };
 const ROUTE_REV = Object.fromEntries(Object.entries(ROUTES).map(([p, id]) => [id, p]));
 const currentRoutePath = () => (location.pathname.replace(/\/+$/, '') || '/');
 
@@ -2739,6 +3507,7 @@ function clearSysOverlays() {
 function checkSpecialRoute() {
   clearSysOverlays();
   const p = currentRoutePath();
+  if (LEGAL_ROUTES[p]) { showLegal(LEGAL_ROUTES[p]); return; }
   if (p === '/admin') document.getElementById('adminMock').classList.add('show');
   else if (!(p in ROUTES)) document.getElementById('notFound').classList.add('show');
 }
@@ -2746,6 +3515,7 @@ function checkSpecialRoute() {
 function applyRoute() {
   clearSysOverlays();
   const p = currentRoutePath();
+  if (LEGAL_ROUTES[p]) { showLegal(LEGAL_ROUTES[p]); return; }
   if (p === '/admin') { document.getElementById('adminMock').classList.add('show'); return; }
   if (!(p in ROUTES)) { document.getElementById('notFound').classList.add('show'); return; }
   const id = ROUTES[p];
@@ -3142,78 +3912,134 @@ async function downloadScriptImage() {
   } catch(e) { showToast('Gagal download gambar.', 'error'); }
 }
 
-/* ══ ACCOUNT SHIELD ══ */
+/* ══ ACCOUNT SHIELD (v3.4) ══ */
+const RBX_API = 'https://api.nexadev.my.id/api/roblox';
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function normalizeRbx(p) {
+  return {
+    name: p.name || p.username || '-',
+    displayName: p.displayName || p.name || '-',
+    id: p.id ?? '-',
+    avatar: p.avatar || p.avatarUrl || null,
+    hasVerifiedBadge: !!p.hasVerifiedBadge,
+    isBanned: !!p.isBanned,
+    friends: p.friends ?? 'N/A',
+    followings: p.followings ?? 'N/A'
+  };
+}
+
+async function robloxHeadshot(id) {
+  try {
+    const r = await fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${encodeURIComponent(id)}&size=150x150&format=Png&isCircular=false`);
+    const j = await r.json();
+    return j?.data?.[0]?.imageUrl || null;
+  } catch (e) { return null; }
+}
+
+async function lookupRobloxUser(uname) {
+  // 1) API utama (nexadev) — terima bentuk { status, data } maupun objek langsung
+  try {
+    const r = await fetch(`${RBX_API}?username=${encodeURIComponent(uname)}`, { headers: { Accept: 'application/json' } });
+    if (r.ok) {
+      const j = await r.json();
+      const p = j?.data ?? j?.result ?? j;
+      if (p && typeof p === 'object' && (p.id || p.name)) {
+        const n = normalizeRbx(p);
+        if (!n.avatar && n.id !== '-') n.avatar = await robloxHeadshot(n.id);
+        return n;
+      }
+    }
+  } catch (e) { console.warn('[rbx] API utama gagal:', e); }
+
+  // 2) Fallback: endpoint resmi Roblox lewat proxy
+  try {
+    const r = await fetch(`https://corsproxy.io/?${encodeURIComponent('https://users.roblox.com/v1/usernames/users')}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usernames: [uname], excludeBannedUsers: false })
+    });
+    const j = await r.json();
+    const u = j?.data?.[0];
+    if (u && u.id) {
+      return normalizeRbx({
+        name: u.name, displayName: u.displayName, id: u.id,
+        hasVerifiedBadge: u.hasVerifiedBadge, avatar: await robloxHeadshot(u.id)
+      });
+    }
+  } catch (e) { console.warn('[rbx] fallback gagal:', e); }
+  return null;
+}
+
 async function checkRobloxAccount() {
-  const uname = document.getElementById('rbxUsername').value.trim();
-  if (!uname) { showToast('Masukkan username dulu!'); return; }
+  const uname = (document.getElementById('rbxUsername').value || '').trim().replace(/^@/, '');
+  if (!uname) { showToast('Masukkan username dulu!', 'error'); return; }
   const btn = document.getElementById('btnProcessAcc');
-  const res  = document.getElementById('accountResult');
+  const res = document.getElementById('accountResult');
   btn.innerHTML = '<div class="spinner" style="width:15px;height:15px;"></div>';
   btn.disabled = true;
   res.classList.remove('show');
   try {
-    let data = null;
-    try {
-      const r1 = await fetch(`https://api.nexadev.my.id/api/roblox?username=${uname}`);
-      const j1 = await r1.json();
-      if (j1.status) data = j1.data;
-    } catch(e) {}
-    if (!data) {
-      const r2 = await fetch(`https://corsproxy.io/?${encodeURIComponent('https://users.roblox.com/v1/usernames/users')}`, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({usernames:[uname], excludeBannedUsers:false})
-      });
-      const j2 = await r2.json();
-      if (j2.data && j2.data.length) {
-        const u = j2.data[0];
-        const avR = await fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${u.id}&size=150x150&format=Png&isCircular=false`);
-        const avJ = await avR.json();
-        data = { name:u.name, displayName:u.displayName, id:u.id, avatar: avJ.data?.[0]?.imageUrl || `https://ui-avatars.com/api/?name=${u.name}`, hasVerifiedBadge:u.hasVerifiedBadge, isBanned:false, friends:'N/A', followings:'N/A' };
-      }
-    }
-    if (data) {
-      res.innerHTML = `
-        <div class="acc-header">
-          <img src="${data.avatar}" class="acc-avatar" onerror="this.src='https://ui-avatars.com/api/?name=${uname}&background=111&color=fff'">
-          <div>
-            <div class="acc-name">${data.name}${data.hasVerifiedBadge?' <i class="fa-solid fa-circle-check" style="font-size:12px;color:var(--green);"></i>':''}</div>
-            <div class="acc-displayname">@${data.displayName}</div>
-          </div>
+    const d = await lookupRobloxUser(uname);
+    if (!d) { showToast('Akun tidak ditemukan.', 'error'); return; }
+    const av = escHtml(d.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(uname)}&background=111&color=fff`);
+    res.innerHTML = `
+      <div class="acc-header">
+        <img src="${av}" class="acc-avatar" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(uname)}&background=111&color=fff'">
+        <div>
+          <div class="acc-name">${escHtml(d.name)}${d.hasVerifiedBadge ? ' <i class="fa-solid fa-circle-check" style="font-size:12px;color:var(--green);"></i>' : ''}</div>
+          <div class="acc-displayname">@${escHtml(d.displayName)}</div>
         </div>
-        <div class="acc-detail"><span>User ID</span><span>${data.id}</span></div>
-        <div class="acc-detail"><span>Teman</span><span>${data.friends || 0}</span></div>
-        <div class="acc-detail"><span>Following</span><span>${data.followings || 0}</span></div>
-        <div class="acc-detail"><span>Status Ban</span><span style="color:${data.isBanned?'var(--red)':'var(--green)'}">${data.isBanned?'<i class="fa-solid fa-triangle-exclamation"></i> Banned':'<i class="fa-solid fa-check"></i> Aman'}</span></div>
-        <div style="font-size:11px; color:var(--text-muted); margin-top:10px; border-top:1px solid var(--border); padding-top:10px; display:flex; align-items:center; gap:6px;">
-          <i class="fa-solid fa-shield-halved"></i> Terverifikasi via Roblox API
-        </div>
-      `;
-      res.classList.add('show');
-    } else {
-      showToast('Akun tidak ditemukan.', 'error');
-    }
-  } catch(e) {
-    showToast('Koneksi API gagal.', 'error');
+      </div>
+      <div class="acc-detail"><span>User ID</span><span>${escHtml(d.id)}</span></div>
+      <div class="acc-detail"><span>Teman</span><span>${escHtml(d.friends)}</span></div>
+      <div class="acc-detail"><span>Following</span><span>${escHtml(d.followings)}</span></div>
+      <div class="acc-detail"><span>Status Ban</span><span style="color:${d.isBanned ? 'var(--red)' : 'var(--green)'}">${d.isBanned ? '<i class="fa-solid fa-triangle-exclamation"></i> Banned' : '<i class="fa-solid fa-check"></i> Aman'}</span></div>
+      <div style="font-size:11px; color:var(--text-muted); margin-top:10px; border-top:1px solid var(--border); padding-top:10px; display:flex; align-items:center; gap:6px;">
+        <i class="fa-solid fa-shield-halved"></i> Terverifikasi via Roblox API
+      </div>`;
+    res.classList.add('show');
+  } catch (e) {
+    console.error(e);
+    showToast('Koneksi API gagal. Coba lagi.', 'error');
   } finally {
     btn.innerHTML = '<i class="fa-solid fa-search"></i> Scan';
     btn.disabled = false;
   }
 }
 
-/* ══ ANTI-HOAX ══ */
+/* ══ AI HELPER ══ */
 const AI_API = 'https://api.synoxcloud.xyz/ai-chat';
 const AI_KEY = 'FREE';
 
+async function aiGet(path, params) {
+  const qs = Object.entries(params).map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+  const r = await fetch(`${AI_API}/${path}?${qs}&apikey=${AI_KEY}`);
+  if (!r.ok) throw new Error(`HTTP ${r.status} (${path})`);
+  return r.json();
+}
+
+function extractJson(text) {
+  if (!text) return null;
+  const clean = String(text).replace(/```json|```/gi, '').trim();
+  const m = clean.match(/\{[\s\S]*\}/);
+  if (!m) return null;
+  try { return JSON.parse(m[0]); } catch (e) { return null; }
+}
+
+const clamp100 = n => Math.max(0, Math.min(100, Math.round(Number(n) || 0)));
+const safeHttpUrl = u => (/^https?:\/\//i.test(String(u || '')) ? String(u) : null);
+
+/* ══ ANTI-HOAX (4 LAPIS) ══ */
 async function runHoaxCheck() {
   const input = document.getElementById('hoaxInput').value.trim();
   if (!input) { showToast('Isi kolom input dulu!'); return; }
-  const btn    = document.getElementById('hoaxBtn');
-  const panel  = document.getElementById('consolePanel');
-  const body   = document.getElementById('consoleBody');
+  const btn = document.getElementById('hoaxBtn');
+  const panel = document.getElementById('consolePanel');
+  const body = document.getElementById('consoleBody');
   const result = document.getElementById('hoaxResult');
-  const dot    = document.getElementById('consoleDot');
-  const label  = document.getElementById('consoleStatusLabel');
-  const time   = document.getElementById('consoleTime');
+  const dot = document.getElementById('consoleDot');
+  const label = document.getElementById('consoleStatusLabel');
+  const time = document.getElementById('consoleTime');
 
   panel.classList.add('visible');
   result.classList.remove('show');
@@ -3224,50 +4050,84 @@ async function runHoaxCheck() {
   label.textContent = 'Processing...';
   time.textContent = new Date().toLocaleTimeString('id-ID');
 
-  const log = (msg, cls='') => {
-    body.innerHTML += `<div class="console-line ${cls}"><span>${msg}</span></div>`;
+  const log = (msg, cls = '') => {
+    body.innerHTML += `<div class="console-line ${cls}"><span>${escHtml(msg)}</span></div>`;
     body.scrollTop = body.scrollHeight;
   };
 
   try {
     log('Inisialisasi Veritas AI Engine...');
-    await sleep(300);
-    log('Menterjemahkan klaim ke konteks global...');
-    const r1 = await fetch(`${AI_API}/qwen3-next-80b-a3b-instruct?prompt=${encodeURIComponent('Translate to English: '+input)}&apikey=${AI_KEY}`);
-    await r1.json();
-    log('Terjemahan selesai.', 'ok');
+    await sleep(200);
 
-    log('Mencari referensi dan sumber web...');
-    const r2 = await fetch(`${AI_API}/turboseek-ai?q=${encodeURIComponent(input)}&apikey=${AI_KEY}`);
-    const d2  = await r2.json();
-    const refs = d2.result?.references || [];
-    log(`Ditemukan ${refs.length} sumber referensi.`, 'ok');
-
-    log('Menganalisis fakta dengan AI...');
-    const prompt = `Fact check this claim: "${input}". References: "${refs.map(r=>r.title).join('. ')}". Reply ONLY as JSON: {"score": 0-100, "summary": "penjelasan singkat dalam bahasa Indonesia"}`;
-    const r3 = await fetch(`${AI_API}/novaai?text=${encodeURIComponent(prompt)}&apikey=${AI_KEY}`);
-    const d3  = await r3.json();
-
-    let parsed = { score: 50, summary: 'Tidak dapat menganalisis. Coba lagi.' };
+    // LAPIS 1 — normalisasi klaim ke bahasa Inggris (qwen3)
+    log('Lapis 1 · Menerjemahkan klaim...');
+    let claimEn = input;
     try {
-      const clean = d3.result.reply.replace(/```json|```/g,'').trim();
-      parsed = JSON.parse(clean);
-    } catch(e) {}
+      const d1 = await aiGet('qwen3-next-80b-a3b-instruct', { prompt: 'Translate this news claim to English. Reply with the translation only, no extra text: ' + input });
+      claimEn = (d1.result?.reply || '').trim() || input;
+      log('Lapis 1 selesai.', 'ok');
+    } catch (e) { log('Lapis 1 gagal, pakai teks asli.', 'err'); }
 
-    log('Analisis selesai.', 'ok');
+    // LAPIS 2 — cari referensi web (turboseek)
+    log('Lapis 2 · Mencari referensi web...');
+    const d2 = await aiGet('turboseek-ai', { q: claimEn });
+    const refs = (d2.result?.references || []).slice(0, 8);
+    log(`Lapis 2 · ${refs.length} sumber ditemukan.`, 'ok');
+
+    // LAPIS 3 — analisis fakta (novaai)
+    log('Lapis 3 · Analisis fakta...');
+    const p3 = `Fact check this claim: "${claimEn}". Sources: ${refs.map((r, i) => `[${i + 1}] ${r.title} (${r.url})`).join('; ') || 'none'}. Reply ONLY with JSON: {"score": 0-100 where 100 = fully true, "verdict": "real" or "hoax" or "unverified", "summary": "penjelasan singkat dalam bahasa Indonesia"}`;
+    const d3 = await aiGet('novaai', { text: p3 });
+    const a3 = extractJson(d3.result?.reply) || { score: 50, verdict: 'unverified', summary: 'Lapis 3 tidak mengembalikan format valid.' };
+    log('Lapis 3 selesai.', 'ok');
+
+    // LAPIS 4 — validasi silang: AI kedua menilai ulang hasil lapis 3 terhadap sumber
+    log('Lapis 4 · Validasi silang...');
+    const p4 = `You are a strict fact-check validator. Claim: "${claimEn}". Another checker gave score ${clamp100(a3.score)} and verdict "${a3.verdict}" with summary: "${a3.summary}". Sources: ${refs.map((r, i) => `[${i + 1}] ${r.title}`).join('; ') || 'none'}. Give your own independent score. Reply ONLY with JSON: {"consistent": true or false, "score": 0-100, "note": "one short sentence in Indonesian"}`;
+    let a4 = null;
+    try {
+      const d4 = await aiGet('unlimited-ai', { prompt: p4, session: 'val-' + Date.now().toString(36) });
+      a4 = extractJson(d4.result?.answer);
+      log(a4 ? 'Lapis 4 selesai.' : 'Lapis 4 tidak mengembalikan format valid.', a4 ? 'ok' : 'err');
+    } catch (e) { log('Lapis 4 gagal dihubungi.', 'err'); }
+
+    const s3 = clamp100(a3.score);
+    const hasL4 = !!a4 && a4.score !== undefined;
+    const s4 = hasL4 ? clamp100(a4.score) : null;
+    const gap = hasL4 ? Math.abs(s3 - s4) : null;
+    const consistent = hasL4 && a4.consistent !== false && gap <= 25;
+    const finalScore = hasL4 ? Math.round((s3 + s4) / 2) : s3;
+
+    let status, statusCls;
+    if (!hasL4) { status = 'Lapis 4 gagal. Hasil belum tervalidasi silang.'; statusCls = 'var(--yellow)'; }
+    else if (consistent) { status = 'Tervalidasi silang (lapis 3 & 4 sepakat).'; statusCls = 'var(--green)'; }
+    else { status = 'Lapis 3 & 4 tidak sepakat. Cek manual sebelum percaya.'; statusCls = 'var(--red)'; }
+
     dot.className = 'console-status-dot done';
     label.textContent = 'Done';
 
-    const score = Math.max(0, Math.min(100, Math.round(parsed.score)));
-    const color = score > 60 ? 'var(--green)' : score < 40 ? 'var(--red)' : 'var(--yellow)';
-
-    document.getElementById('scoreNum').textContent = score + '%';
+    const color = finalScore > 60 ? 'var(--green)' : finalScore < 40 ? 'var(--red)' : 'var(--yellow)';
+    document.getElementById('scoreNum').textContent = finalScore + '%';
     document.getElementById('scoreNum').style.color = color;
-    document.getElementById('scoreBar').style.width = score + '%';
+    document.getElementById('scoreBar').style.width = finalScore + '%';
     document.getElementById('scoreBar').style.background = color;
-    document.getElementById('resultSummary').textContent = parsed.summary;
+
+    const srcHtml = refs.length
+      ? '<div style="margin-top:10px;font-size:11px;color:var(--text-muted);">Sumber:</div>' + refs.map((r, i) => {
+          const u = safeHttpUrl(r.url);
+          const t = escHtml(r.title || r.name || 'Sumber ' + (i + 1));
+          return u ? `<div style="font-size:12px;margin-top:4px;"><a href="${escHtml(u)}" target="_blank" rel="noopener noreferrer" style="color:var(--text-dim);">${t}</a></div>` : `<div style="font-size:12px;margin-top:4px;">${t}</div>`;
+        }).join('')
+      : '';
+
+    document.getElementById('resultSummary').innerHTML = `
+      <div style="font-size:12px;color:${statusCls};margin-bottom:8px;"><i class="fa-solid fa-shield-halved"></i> ${escHtml(status)}</div>
+      <div>${escHtml(a3.summary || '')}</div>
+      ${hasL4 && a4.note ? `<div style="font-size:12px;color:var(--text-dim);margin-top:8px;">Catatan lapis 4: ${escHtml(a4.note)}</div>` : ''}
+      <div style="font-size:11px;color:var(--text-muted);margin-top:10px;">Skor AI bukan jaminan kebenaran 100%. Selalu cek sumber resmi.</div>
+      ${srcHtml}`;
     result.classList.add('show');
-  } catch(e) {
+  } catch (e) {
     log('Error: ' + e.message, 'err');
     dot.className = 'console-status-dot idle';
     label.textContent = 'Error';
@@ -3278,7 +4138,156 @@ async function runHoaxCheck() {
   }
 }
 
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+/* ══ YUMZZBOT ══ */
+const BOT_KNOWLEDGE = [
+  'Kamu adalah YumzzBot, asisten resmi website YumzExe (komunitas executor dan script Roblox).',
+  'Jawab dalam bahasa Indonesia, singkat, ramah. Jika tidak tahu, bilang terus terang.',
+  'Fakta website: Menu bawah = Home, Executor, Script, Chat, Tools, Akun. Tips ada di Akun/panduan.',
+  'Home punya tombol Report (lapor script/executor bermasalah, scam, bug) dan tombol YumzzBot.',
+  'Login pakai Google. Setelah login pertama wajib pilih username 3-20 karakter. Tamu bisa lihat tapi tidak bisa chat.',
+  'Badge: Owner = centang emas, Admin = centang biru, Member = tanpa badge.',
+  'Tools: Account Shield (cek info akun Roblox), Anti-Hoax (cek berita, 4 lapis AI).',
+  'Executor resmi di website: Arceus X Neo (pakai warning, tanpa link), Delta Executor, VegaX. Selalu unduh dari sumber resmi.',
+  'Pertanyaan user:'
+].join(' ');
+
+let botSession = 'yumzzbot-' + Math.random().toString(36).slice(2, 10);
+
+function botAppend(role, text) {
+  const log = document.getElementById('botLog');
+  const div = document.createElement('div');
+  div.className = 'bot-msg ' + role;
+  div.textContent = text;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+  return div;
+}
+
+async function botAsk(e) {
+  e.preventDefault();
+  const inp = document.getElementById('botInput');
+  const send = document.getElementById('botSend');
+  const q = inp.value.trim();
+  if (!q) return;
+  if (q.length > 500) { showToast('Pertanyaan terlalu panjang (maks 500).', 'error'); return; }
+  inp.value = '';
+  botAppend('user', q);
+  const pending = botAppend('bot', 'Mengetik...');
+  send.disabled = true;
+  try {
+    const d = await aiGet('unlimited-ai', { prompt: BOT_KNOWLEDGE + ' ' + q, session: botSession });
+    pending.textContent = (d.result?.answer || '').trim() || 'Maaf, aku belum bisa jawab sekarang.';
+  } catch (err) {
+    console.error(err);
+    pending.textContent = 'Maaf, koneksi ke AI sedang bermasalah. Coba lagi sebentar.';
+  } finally {
+    send.disabled = false;
+    inp.focus();
+  }
+}
+document.getElementById('botForm').addEventListener('submit', botAsk);
+
+/* ══ REPORT ══ */
+function openReport() {
+  if (!myProfile || window.isGuest) { showToast('Login dulu buat kirim report.', 'error'); return; }
+  document.getElementById('reportOverlay').classList.add('show');
+}
+function closeReport() { document.getElementById('reportOverlay').classList.remove('show'); }
+
+document.getElementById('reportForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const msg = document.getElementById('reportMsg').value.trim();
+  const cat = document.getElementById('reportCat').value;
+  if (msg.length < 5) { showToast('Tulis laporanmu minimal 5 karakter.', 'error'); return; }
+  const btn = document.getElementById('reportSend');
+  btn.disabled = true;
+  const { error } = await sb.from('reports').insert({
+    username: myProfile?.username || null,
+    category: cat,
+    message: msg
+  });
+  btn.disabled = false;
+  if (error) { console.error(error); showToast('Gagal kirim report.', 'error'); return; }
+  document.getElementById('reportMsg').value = '';
+  closeReport();
+  showToast('Report terkirim. Terima kasih!');
+});
+
+/* ══ LEGAL (pp & t-o-u) ══ */
+function showLegal(id) {
+  document.getElementById('loginScreen').classList.add('hide');
+  document.getElementById('notFound').classList.remove('show');
+  switchPage(id, null);
+}
+
+/* ══ DEV: LAPORAN & MAINTENANCE (v3.4) ══ */
+async function admLoadReports() {
+  const box = admEl('repList');
+  box.innerHTML = '<div class="spinner" style="margin:24px auto;"></div>';
+  const { data, error } = await sb.from('reports').select('*').order('created_at', { ascending: false }).limit(100);
+  if (error) { console.error(error); box.innerHTML = '<div class="dev-row">Gagal memuat laporan.</div>'; return; }
+  if (!data || !data.length) { box.innerHTML = '<div class="dev-row">Belum ada laporan.</div>'; return; }
+  box.innerHTML = data.map(r => {
+    const open = r.status === 'open';
+    return `
+    <div class="dev-row">
+      <div style="min-width:0;flex:1;">
+        <div style="font-size:13px;font-weight:600;">${escHtml(r.category)}
+          <small><i class="fa-solid fa-circle" style="font-size:7px;color:${open ? 'var(--yellow)' : 'var(--green)'}"></i> ${open ? 'open' : 'selesai'}</small>
+        </div>
+        <div style="font-size:12px;color:var(--text-dim);margin-top:4px;word-break:break-word;">${escHtml(r.message)}</div>
+        <small>${escHtml(r.username || '-')} · ${escHtml(new Date(r.created_at).toLocaleString('id-ID'))}</small>
+      </div>
+      <div class="dev-row-act">
+        <button onclick="admSetReportStatus(${Number(r.id)}, '${open ? 'resolved' : 'open'}')">${open ? 'Selesai' : 'Buka lagi'}</button>
+        <button class="del" onclick="admDeleteReport(${Number(r.id)})"><i class="fa-solid fa-trash"></i></button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function admSetReportStatus(id, status) {
+  const { error } = await sb.from('reports').update({ status }).eq('id', id);
+  if (error) { showToast('Gagal update laporan.', 'error'); return; }
+  admLoadReports();
+}
+
+async function admDeleteReport(id) {
+  if (!confirm('Hapus laporan ini?')) return;
+  const { error } = await sb.from('reports').delete().eq('id', id);
+  if (error) { showToast('Gagal menghapus.', 'error'); return; }
+  admLoadReports();
+}
+
+async function admLoadSite() {
+  const { data } = await sb.from('site_settings').select('value').eq('key', 'maintenance').maybeSingle();
+  const v = data?.value || {};
+  admEl('maintOn').checked = !!v.on;
+  admEl('maintMsg').value = v.message || '';
+}
+
+document.getElementById('maintForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const value = {
+    on: document.getElementById('maintOn').checked,
+    message: document.getElementById('maintMsg').value.trim() || 'Website sedang maintenance. Coba lagi nanti.'
+  };
+  const { error } = await sb.from('site_settings').upsert({ key: 'maintenance', value, updated_at: new Date().toISOString() });
+  if (error) { console.error(error); showToast('Gagal menyimpan.', 'error'); return; }
+  showToast('Pengaturan maintenance tersimpan.');
+});
+
+// Dipanggil setelah login. Admin tetap bisa masuk saat maintenance aktif.
+async function checkMaintenance() {
+  if (adminRole) return;
+  const { data } = await sb.from('site_settings').select('value').eq('key', 'maintenance').maybeSingle();
+  if (data?.value?.on) {
+    document.getElementById('maintMsgUser').textContent = data.value.message || 'Website sedang maintenance.';
+    document.getElementById('maintOverlay').classList.add('show');
+  } else {
+    document.getElementById('maintOverlay').classList.remove('show');
+  }
+}
 
 /* ══ TOAST ══ */
 function showToast(msg, type = 'ok') {
@@ -3493,6 +4502,7 @@ async function onUserSignedIn(user) {
   adminRole = await resolveAdminRole(email);
   admEl('devPanelBtn').style.display = adminRole ? '' : 'none';
   document.querySelectorAll('.owner-only').forEach(el => el.style.display = adminRole === 'owner' ? '' : 'none');
+  checkMaintenance().catch(err => console.warn(err));
   admEl('admRoleDesc').textContent = adminRole ? `Login sebagai ${adminRole}.` : 'Panel pengelola.';
 
   // Sinkron profil ke tabel users. ignoreDuplicates: exp & banned tidak ditimpa.
@@ -3533,7 +4543,7 @@ async function loadAccountStats(user) {
 document.getElementById('admTabs').addEventListener('click', e => {
   const btn = e.target.closest('.adm-tab');
   if (!btn) return;
-  if (btn.dataset.adm === 'adm' && adminRole !== 'owner') return;
+  if ((btn.dataset.adm === 'adm' || btn.dataset.adm === 'site') && adminRole !== 'owner') return;
   document.querySelectorAll('.adm-tab').forEach(t => t.classList.toggle('active', t === btn));
   document.querySelectorAll('.adm-pane').forEach(p => p.classList.toggle('active', p.id === 'admPane-' + btn.dataset.adm));
   admLoadPane(btn.dataset.adm);
@@ -3543,7 +4553,7 @@ function admActiveName() {
   return document.querySelector('.adm-tab.active')?.dataset.adm || 'sum';
 }
 function admLoadPane(name) {
-  const loaders = { sum: admLoadSummary, exe: loadDevExecutors, chat: admLoadChat, usr: admLoadUsers, ann: admLoadAnn, adm: admLoadAdmins };
+  const loaders = { sum: admLoadSummary, exe: loadDevExecutors, chat: admLoadChat, usr: admLoadUsers, ann: admLoadAnn, adm: admLoadAdmins, rep: admLoadReports, site: admLoadSite };
   loaders[name]?.();
 }
 
