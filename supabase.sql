@@ -143,6 +143,57 @@ select * from (values
 ) as v(name, platform, detail, status, tag, icon, url, warning, sort_order)
 where not exists (select 1 from executors);
 
+
+-- ============================================================
+-- UPDATE v3: username wajib, role di chat, notifikasi/inbox
+-- ============================================================
+alter table users add column if not exists username_set boolean not null default false;
+
+alter table global_chat add column if not exists avatar_url text;
+alter table global_chat add column if not exists role text not null default 'member';
+
+-- Trigger chat: username, avatar & role DIAMBIL dari server (tidak bisa dipalsukan dari client)
+create or replace function chat_guard() returns trigger language plpgsql as $$
+declare r text; u record;
+begin
+  if exists (select 1 from mutes where email = new.user_email and until > now()) then
+    raise exception 'muted';
+  end if;
+  select username, avatar_url, banned into u from users where email = new.user_email;
+  if u.banned then raise exception 'banned'; end if;
+  select role into r from admins where email = new.user_email;
+  new.role := coalesce(r, 'member');
+  new.username := coalesce(u.username, new.username);
+  new.avatar_url := coalesce(u.avatar_url, new.avatar_url);
+  return new;
+end $$;
+
+-- Notifikasi owner (to_email null = semua user)
+create table if not exists notifications (
+  id bigint generated always as identity primary key,
+  to_email text,
+  title text not null,
+  body text not null,
+  from_name text,
+  created_at timestamptz not null default now()
+);
+alter table notifications enable row level security;
+drop policy if exists "notif read" on notifications;
+drop policy if exists "notif insert" on notifications;
+create policy "notif read" on notifications for select using (true);
+-- PERINGATAN: insert masih terbuka. Kunci ke owner lewat Edge Function sebelum produksi.
+create policy "notif insert" on notifications for insert with check (true);
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'notifications'
+  ) then
+    alter publication supabase_realtime add table notifications;
+  end if;
+end $$;
+
 -- 7. CEK HASIL
 select 'users' as tabel, count(*) from users
 union all select 'global_chat', count(*) from global_chat

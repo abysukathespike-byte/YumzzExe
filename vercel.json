@@ -2,6 +2,7 @@
   "cleanUrls": true,
   "rewrites": [
     { "source": "/pp", "destination": "/pp.html" },
-    { "source": "/t-o-u", "destination": "/t-o-u.html" }
+    { "source": "/t-o-u", "destination": "/t-o-u.html" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }

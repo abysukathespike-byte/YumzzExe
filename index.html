@@ -1419,6 +1419,72 @@ input, textarea { user-select: text; -webkit-user-select: text; }
 .acc-role-badge { display:inline-block; padding:4px 12px; border-radius:999px; font-size:11px; font-weight:700; letter-spacing:.5px; background:var(--text); color:#000; font-family:'JetBrains Mono',monospace; }
 .acc-role-badge.owner { background:#fbbf24; }
 .acc-role-badge.admin { background:#34d399; }
+
+/* ══ POLISH v3: roles, chat, inbox, tips, 404 ══ */
+body::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(900px 600px at 10% -10%, rgba(251,191,36,.08), transparent 60%),
+    radial-gradient(800px 600px at 110% 10%, rgba(59,130,246,.09), transparent 60%),
+    radial-gradient(700px 500px at 50% 120%, rgba(52,211,153,.06), transparent 60%);
+}
+.vbadge { position: relative; display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; margin-left: 4px; vertical-align: middle; font-size: 16px; line-height: 1; }
+.vbadge .fa-certificate { font-size: 16px; }
+.vbadge .fa-check { position: absolute; font-size: 7.5px; color: #fff; text-shadow: 0 0 2px rgba(0,0,0,.4); }
+.vb-owner { color: #f5c542; animation: vbShine 2.4s ease-in-out infinite; }
+.vb-admin { color: #3b82f6; filter: drop-shadow(0 0 3px rgba(59,130,246,.6)); }
+@keyframes vbShine {
+  0%,100% { filter: drop-shadow(0 0 2px rgba(251,191,36,.5)) brightness(1); }
+  50%     { filter: drop-shadow(0 0 8px rgba(251,191,36,.95)) brightness(1.3); }
+}
+.chat-head { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.chat-msg.me .chat-head { flex-direction: row-reverse; }
+.chat-ava { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
+  border: 1px solid var(--border-strong); background: var(--bg4); }
+.chat-name { display: flex; align-items: center; font-size: 11px; color: var(--text-dim); font-weight: 600; margin-bottom: 0; }
+.chat-msg.role-owner .chat-bubble { border-color: rgba(251,191,36,.35); }
+.chat-msg.role-admin .chat-bubble { border-color: rgba(59,130,246,.35); }
+.chat-input-box input:disabled { opacity: .5; cursor: not-allowed; }
+.top-act { position: relative; }
+#ownerSendBtn { color: var(--yellow); }
+.red-dot { position: absolute; top: 4px; right: 4px; width: 9px; height: 9px; border-radius: 50%;
+  background: #ef4444; box-shadow: 0 0 0 2px var(--bg), 0 0 8px rgba(239,68,68,.85);
+  animation: redPulse 1.6s ease-in-out infinite; }
+@keyframes redPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.25); } }
+.om-title { font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; margin-bottom: 8px;
+  display: flex; gap: 8px; align-items: center; padding-right: 36px; }
+.om-desc { font-size: 13px; color: var(--text-dim); margin-bottom: 14px; line-height: 1.5; }
+.om-input { width: 100%; background: var(--bg4); border: 1px solid var(--border); color: #fff; border-radius: 12px;
+  padding: 12px 14px; font-size: 14px; margin-bottom: 10px; outline: none; font-family: inherit; }
+.om-input:focus { border-color: var(--border-strong); }
+.om-area { min-height: 110px; resize: vertical; }
+.os-tabs { display: flex; gap: 8px; margin-bottom: 10px; }
+.os-tab { flex: 1; padding: 10px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg4);
+  color: var(--text-dim); font-size: 13px; font-weight: 600; cursor: pointer; }
+.os-tab.active { background: #fff; color: #000; }
+.tip-sec { background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; padding: 14px; margin-bottom: 10px; }
+.tip-sec h4 { font-size: 14px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+.tip-sec p, .tip-sec li { font-size: 13px; color: var(--text-dim); line-height: 1.6; }
+.tip-sec ul { padding-left: 18px; }
+.inbox-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 12px; margin-bottom: 8px; }
+.inbox-item.new { border-color: rgba(239,68,68,.55); }
+.inbox-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 4px; font-size: 14px; }
+.inbox-tag { font-size: 10px; padding: 2px 8px; border-radius: 999px; background: var(--bg4); color: var(--text-dim); white-space: nowrap; }
+.inbox-tag.all { background: rgba(59,130,246,.2); color: #93c5fd; }
+.inbox-body { font-size: 13px; color: var(--text-dim); margin-bottom: 6px; white-space: pre-wrap; line-height: 1.5; }
+.inbox-item small { font-size: 11px; color: var(--text-muted); }
+.sys-overlay { position: fixed; inset: 0; z-index: 9500; display: none; align-items: center; justify-content: center;
+  padding: 20px; background: radial-gradient(circle at 50% 30%, #141414, #050505 70%); text-align: center; }
+.sys-overlay.show { display: flex; }
+.sys-card { max-width: 360px; width: 100%; }
+.sys-code { font-family: 'Space Grotesk', sans-serif; font-size: 96px; font-weight: 700; line-height: 1;
+  background: linear-gradient(180deg,#ffffff,#3f3f46); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.sys-icon { font-size: 40px; color: var(--text-dim); margin: 14px 0; display: block; }
+.sys-card h2 { font-size: 20px; margin-bottom: 8px; }
+.sys-card p { font-size: 14px; color: var(--text-dim); line-height: 1.6; margin-bottom: 20px; }
+.sys-btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 999px;
+  background: #fff; color: #000; font-weight: 700; text-decoration: none; font-size: 14px; border: none; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -1713,6 +1779,8 @@ input, textarea { user-select: text; -webkit-user-select: text; }
     <div class="user-info-wrap" id="userInfo" style="display:none;">
       <div class="top-acts">
         <button class="top-act" data-tip="Leaderboard" onclick="switchPage('leaderboard', null)"><i class="fa-solid fa-ranking-star"></i></button>
+        <button class="top-act" id="ownerSendBtn" data-tip="Kirim Pesan" onclick="openOwnerSend()" style="display:none;"><i class="fa-solid fa-paper-plane"></i></button>
+        <button class="top-act" id="inboxBtn" data-tip="Inbox" onclick="openInbox()"><i class="fa-solid fa-bell"></i><span class="red-dot" id="inboxDot" style="display:none;"></span></button>
         <button class="top-act" data-tip="CS" onclick="openCsModal()"><i class="fa-solid fa-headset"></i></button>
       </div>
       <button class="profile-btn" id="profileBtn" onclick="toggleProfileDropdown()">
@@ -2106,7 +2174,7 @@ input, textarea { user-select: text; -webkit-user-select: text; }
         <div class="about-row"><span class="label">Nama</span><span class="value">YumzExe</span></div>
         <div class="about-row"><span class="label">Versi</span><span class="value green">v2.1 — Official</span></div>
         <div class="about-row"><span class="label">Platform</span><span class="value">Web App (Mobile-first)</span></div>
-        <div class="about-row"><span class="label">Status Server</span><span class="value green">Online ✓</span></div>
+        <div class="about-row"><span class="label">Status Server</span><span class="value green">Online <i class="fa-solid fa-check"></i></span></div>
         <div class="about-row"><span class="label">Script Database</span><span class="value">YumzExe API v2</span></div>
       </div>
 
@@ -2176,6 +2244,91 @@ input, textarea { user-select: text; -webkit-user-select: text; }
   </div>
 </div>
 
+<div class="modal" id="usernameModal">
+  <div class="modal-content" style="max-width:420px;">
+    <div class="modal-handle"><div class="handle-bar"></div></div>
+    <div class="om-title"><i class="fa-solid fa-id-badge"></i> Pilih Username</div>
+    <p class="om-desc">Ini nama yang bakal tampil di chat, leaderboard, dan profil kamu. Cuma sekali di awal, jadi pilih yang keren.</p>
+    <input id="unameInput" class="om-input" maxlength="20" placeholder="contoh: yumz_king" autocomplete="off">
+    <p class="om-desc" style="font-size:11.5px;margin-bottom:14px;">3-20 karakter: huruf, angka, _ atau titik.</p>
+    <button id="unameSaveBtn" class="btn-close-welcome" onclick="saveUsername()"><i class="fa-solid fa-check"></i> Simpan</button>
+  </div>
+</div>
+
+<div class="modal" id="ownerSendModal" onclick="if(event.target===this)closeById('ownerSendModal')">
+  <div class="modal-content">
+    <div class="modal-handle"><div class="handle-bar"></div></div>
+    <button class="modal-close" onclick="closeById('ownerSendModal')"><i class="fa-solid fa-xmark"></i></button>
+    <div class="om-title"><i class="fa-solid fa-paper-plane"></i> Kirim Pesan</div>
+    <div class="os-tabs">
+      <button class="os-tab active" data-t="all" onclick="setOsTarget('all')"><i class="fa-solid fa-users"></i> Semua User</button>
+      <button class="os-tab" data-t="user" onclick="setOsTarget('user')"><i class="fa-solid fa-user"></i> User Tertentu</button>
+    </div>
+    <div id="osUserWrap" style="display:none;"><input id="osUser" class="om-input" maxlength="20" placeholder="Username tujuan"></div>
+    <input id="osTitle" class="om-input" maxlength="80" placeholder="Judul pesan">
+    <textarea id="osBody" class="om-input om-area" maxlength="500" placeholder="Isi pesan..."></textarea>
+    <button class="btn-close-welcome" onclick="sendOwnerNotif()"><i class="fa-solid fa-paper-plane"></i> Kirim</button>
+  </div>
+</div>
+
+<div class="modal" id="inboxModal" onclick="if(event.target===this)closeById('inboxModal')">
+  <div class="modal-content">
+    <div class="modal-handle"><div class="handle-bar"></div></div>
+    <button class="modal-close" onclick="closeById('inboxModal')"><i class="fa-solid fa-xmark"></i></button>
+    <div class="om-title"><i class="fa-solid fa-bell"></i> Inbox</div>
+    <div id="inboxList"></div>
+  </div>
+</div>
+
+<div class="modal" id="tipsModal" onclick="if(event.target===this)closeById('tipsModal')">
+  <div class="modal-content">
+    <div class="modal-handle"><div class="handle-bar"></div></div>
+    <button class="modal-close" onclick="closeById('tipsModal')"><i class="fa-solid fa-xmark"></i></button>
+    <div class="om-title"><i class="fa-solid fa-circle-question"></i> Tips & Tutorial</div>
+    <div class="tip-sec"><h4><i class="fa-solid fa-rocket" style="color:var(--yellow)"></i> Mulai dari sini</h4>
+      <ul><li>Login pakai Google, lalu pilih username kamu (cuma sekali).</li>
+      <li>Mau cuma ngintip dulu? Pakai <b>Masuk sebagai Tamu</b>. Tamu bisa lihat konten, tapi belum bisa ikut chat.</li></ul></div>
+    <div class="tip-sec"><h4><i class="fa-solid fa-compass" style="color:#93c5fd"></i> Menu bawah</h4>
+      <ul><li><b>Home</b>: info dan pengumuman terbaru.</li>
+      <li><b>Executor</b>: daftar executor beserta statusnya.</li>
+      <li><b>Script</b>: cari script dari katalog ScriptBlox.</li>
+      <li><b>Chat</b>: ngobrol di Global Chat bareng member lain.</li>
+      <li><b>Tools</b>: tools resmi buat cek akun.</li>
+      <li><b>Akun</b>: profil, EXP, dan rank kamu.</li></ul></div>
+    <div class="tip-sec"><h4><i class="fa-solid fa-id-card-clip" style="color:#34d399"></i> Badge role</h4>
+      <ul><li><span class="vbadge vb-owner"><i class="fa-solid fa-certificate"></i><i class="fa-solid fa-check"></i></span> Owner: centang emas berkilau.</li>
+      <li><span class="vbadge vb-admin"><i class="fa-solid fa-certificate"></i><i class="fa-solid fa-check"></i></span> Admin: centang biru.</li>
+      <li>Tanpa badge = Member.</li></ul></div>
+    <div class="tip-sec"><h4><i class="fa-solid fa-link" style="color:#f87171"></i> Shortcut URL</h4>
+      <p>Kamu bisa buka halaman langsung lewat link, misalnya <b>/script</b>, <b>/chat</b>, <b>/leaderboard</b>, atau <b>/akun</b>.</p></div>
+    <div class="tip-sec"><h4><i class="fa-solid fa-shield-halved" style="color:#fbbf24"></i> Aturan chat</h4>
+      <ul><li>Maksimal 300 karakter per pesan.</li>
+      <li>Jangan spam dan jangan kasar ke member lain.</li>
+      <li>Pelanggar bisa kena mute atau banned.</li></ul></div>
+    <div class="tip-sec"><h4><i class="fa-solid fa-life-ring" style="color:var(--text-dim)"></i> Butuh bantuan?</h4>
+      <p>Tekan ikon headset di atas untuk CS, atau gabung saluran WhatsApp lewat menu profil.</p></div>
+  </div>
+</div>
+
+<div id="notFound" class="sys-overlay">
+  <div class="sys-card">
+    <div class="sys-code">404</div>
+    <i class="fa-solid fa-ghost sys-icon"></i>
+    <h2>Halaman ini ga ada</h2>
+    <p>URL yang kamu buka nyasar. Cek lagi tulisannya atau balik ke beranda.</p>
+    <a class="sys-btn" href="/"><i class="fa-solid fa-house"></i> Balik ke Beranda</a>
+  </div>
+</div>
+
+<div id="adminMock" class="sys-overlay">
+  <div class="sys-card">
+    <i class="fa-solid fa-user-secret sys-icon"></i>
+    <h2>Hayoo, mau ngapain?</h2>
+    <p>Nyari /admin? Kepo banget sih. Admin itu ga bakal muncul di URL, bro. Mending balik dan main yang bener.</p>
+    <a class="sys-btn" href="/"><i class="fa-solid fa-house"></i> Ketahuan, balik aja</a>
+  </div>
+</div>
+
 <nav class="bottom-nav">
   <button class="nav-item active" data-page="home" onclick="switchPage('home',this)">
     <span class="nav-icon"><i class="fa-solid fa-house"></i></span>
@@ -2200,6 +2353,10 @@ input, textarea { user-select: text; -webkit-user-select: text; }
   <button class="nav-item" data-page="about" onclick="switchPage('about',this)">
     <span class="nav-icon"><i class="fa-solid fa-user"></i></span>
     <span class="nav-label">Akun</span>
+  </button>
+  <button class="nav-item" data-page="tips" onclick="openModalById('tipsModal')">
+    <span class="nav-icon"><i class="fa-solid fa-circle-question"></i></span>
+    <span class="nav-label">Tips</span>
   </button>
 </nav>
 
@@ -2264,18 +2421,30 @@ function appendMsg(m) {
   box.querySelector('.chat-empty')?.remove();
 
   const cu = firebase.auth().currentUser;
-  const isMe = cu ? cu.email === m.user_email : m.user_email === 'guest@yumz.com';
+  const isMe = !!cu && cu.email === m.user_email;
+  const role = m.role || 'member';
+  const uname = m.username || 'User';
 
   const el = document.createElement('div');
-  el.className = `chat-msg ${isMe ? 'me' : 'other'}`;
+  el.className = `chat-msg ${isMe ? 'me' : 'other'} role-${role}`;
   el.dataset.id = m.id ?? '';
+
+  const head = document.createElement('div');
+  head.className = 'chat-head';
+  const ava = document.createElement('img');
+  ava.className = 'chat-ava';
+  ava.alt = '';
+  ava.src = m.avatar_url || DEFAULT_AVA(uname);
+  ava.onerror = () => { ava.onerror = null; ava.src = DEFAULT_AVA(uname); };
   const nameEl = document.createElement('div');
   nameEl.className = 'chat-name';
-  nameEl.textContent = isMe ? 'Kamu' : (m.username || 'Anon');
+  nameEl.innerHTML = `${escHtml(uname)}${roleBadge(role)}`;
+  head.append(ava, nameEl);
+
   const bubble = document.createElement('div');
   bubble.className = 'chat-bubble';
   bubble.textContent = m.message;
-  el.append(nameEl, bubble);
+  el.append(head, bubble);
   box.appendChild(el);
   box.scrollTop = box.scrollHeight;
 }
@@ -2286,7 +2455,7 @@ async function sendChat() {
   if (!text) return;
 
   const user = firebase.auth().currentUser;
-  if (!user) { showToast('Login dulu buat kirim chat!', 'error'); return; }
+  if (window.isGuest || !user) { showToast('Tamu cuma bisa baca chat. Login Google dulu buat ngobrol!', 'error'); return; }
 
   if (window.Sec) {
     if (!Sec.rateLimit('chat', 4, 10000)) { showToast('Pelan-pelan, tunggu sebentar.', 'error'); return; }
@@ -2294,9 +2463,12 @@ async function sendChat() {
     if (!spam.ok) { showToast(spam.reason, 'error'); return; }
   }
 
+  // username, avatar & role juga dipaksa ulang di server (trigger chat_guard)
   const payload = {
     user_email: user.email,
-    username: user.displayName ? user.displayName.split(' ')[0] : 'User',
+    username: myProfile?.username || 'User',
+    avatar_url: myProfile?.avatar || null,
+    role: adminRole || 'member',
     message: text
   };
   input.value = '';
@@ -2325,36 +2497,60 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const provider = new firebase.auth.GoogleAuthProvider();
 
-/* ══ AUTH STATE ══ */
-function populateUI(name, av, role) {
-  const firstName = name ? name.split(' ')[0] : 'User';
-  document.getElementById('userNameLabel').textContent = firstName;
-  document.getElementById('userAvatarTop').src = av;
-  document.getElementById('dropdownAvatar').src = av;
-  document.getElementById('dropdownUsername').textContent = name || 'User';
-  document.getElementById('dropdownRole').textContent = role;
-  document.getElementById('userInfo').style.display = 'flex';
+/* ══ PROFILE, ROLE & AUTH ══ */
+const DEV_EMAIL = 'abysukathespike@gmail.com';
+let myProfile = null;          // { username, avatar, role, email, guest }
+window.isGuest = false;
+const DEFAULT_AVA = name => `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=111&color=fff`;
+const ROLE_LABEL = { owner: 'Owner', admin: 'Admin', member: 'Member', guest: 'Tamu' };
+
+function roleBadge(role) {
+  if (role !== 'owner' && role !== 'admin') return '';
+  return `<span class="vbadge vb-${role}" title="${ROLE_LABEL[role]}"><i class="fa-solid fa-certificate"></i><i class="fa-solid fa-check"></i></span>`;
 }
 
-const DEV_EMAIL = 'abysukathespike@gmail.com';
+function refreshProfileUI() {
+  const p = myProfile;
+  if (!p) return;
+  const nm = escHtml(p.username);
+  document.getElementById('userNameLabel').textContent = p.username;
+  document.getElementById('userAvatarTop').src = p.avatar;
+  document.getElementById('dropdownAvatar').src = p.avatar;
+  document.getElementById('dropdownUsername').innerHTML = `${nm}${roleBadge(p.role)}`;
+  document.getElementById('dropdownRole').textContent = ROLE_LABEL[p.role] || 'Member';
+  document.getElementById('userInfo').style.display = 'flex';
+  document.getElementById('aboutName').innerHTML = `${nm}${roleBadge(p.role)}`;
+  document.getElementById('aboutAvatar').src = p.avatar;
+  document.getElementById('aboutEmail').textContent = p.email || 'Mode tamu (belum login)';
+  document.getElementById('profileCard').style.display = 'block';
+  document.getElementById('ownerSendBtn').style.display = p.role === 'owner' ? '' : 'none';
+  const ci = document.getElementById('chatInput');
+  if (ci) {
+    ci.disabled = !!p.guest;
+    ci.placeholder = p.guest ? 'Login Google dulu buat chat...' : 'Ketik pesan...';
+  }
+}
 
 auth.onAuthStateChanged((user) => {
   if (user) {
+    window.isGuest = false;
     window.isDev = (user.email || '').toLowerCase() === DEV_EMAIL;
-    onUserSignedIn(user).catch(err => console.error(err));
     document.getElementById('loginScreen').classList.add('hide');
-    const av = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName||'User')}&background=111&color=fff`;
-    populateUI(user.displayName, av, window.isDev ? 'Developer' : 'Google Member');
-    document.getElementById('profileCard').style.display = 'block';
-    document.getElementById('aboutName').textContent = user.displayName || 'User';
-    document.getElementById('aboutEmail').textContent = user.email || '';
-    document.getElementById('aboutAvatar').src = av;
-    document.getElementById('welcomeName').textContent = `Halo, ${user.displayName ? user.displayName.split(' ')[0] : 'User'}! Selamat bergabung.`;
-    document.getElementById('welcomeAvatar').src = av;
-    document.getElementById('welcomeModal').classList.add('show');
+    myProfile = {
+      username: (user.displayName || 'User').split(' ')[0],
+      avatar: user.photoURL || DEFAULT_AVA(user.displayName),
+      role: 'member',
+      email: (user.email || '').toLowerCase()
+    };
+    refreshProfileUI();
+    onUserSignedIn(user).catch(err => console.error(err));
+    applyRoute();
+  } else if (window.isGuest) {
+    return; // sesi tamu tetap jalan
   } else {
     window.isDev = false;
     adminRole = null;
+    myProfile = null;
     document.getElementById('loginScreen').classList.remove('hide');
     document.getElementById('profileCard').style.display = 'none';
     document.getElementById('userInfo').style.display = 'none';
@@ -2366,13 +2562,198 @@ function signInWithGoogle() {
 }
 
 function loginAsGuest() {
-  alert('Wajib Login pake Google, bos!');
+  window.isGuest = true;
+  adminRole = null;
+  myProfile = { username: 'Tamu', avatar: DEFAULT_AVA('Tamu'), role: 'guest', email: null, guest: true };
+  document.getElementById('loginScreen').classList.add('hide');
+  refreshProfileUI();
+  loadInbox();
+  subscribeNotifs();
+  applyRoute();
+  showToast('Masuk sebagai tamu. Login Google buat ikut chat.');
 }
 
 function logout() {
   closeProfileDropdown();
   auth.signOut().then(() => location.reload());
 }
+
+/* ── Username (wajib setelah login Google pertama kali) ── */
+function showUsernameModal() {
+  document.getElementById('usernameModal').classList.add('show');
+  setTimeout(() => document.getElementById('unameInput')?.focus(), 400);
+}
+
+async function saveUsername() {
+  const inp = document.getElementById('unameInput');
+  const btn = document.getElementById('unameSaveBtn');
+  const name = (inp.value || '').trim();
+  if (!/^[A-Za-z0-9_.]{3,20}$/.test(name)) { showToast('Username 3-20 karakter: huruf, angka, _ atau titik.', 'error'); return; }
+  const email = myProfile?.email;
+  if (!email) return;
+  btn.disabled = true;
+  const { data: dup } = await sb.from('users').select('email').ilike('username', name.replace(/_/g, '\\_')).neq('email', email).maybeSingle();
+  if (dup) { btn.disabled = false; showToast('Username itu udah dipakai orang lain.', 'error'); return; }
+  const { error } = await sb.from('users').update({ username: name, username_set: true }).eq('email', email);
+  btn.disabled = false;
+  if (error) { showToast('Gagal simpan username.', 'error'); console.error(error); return; }
+  myProfile.username = name;
+  refreshProfileUI();
+  document.getElementById('usernameModal').classList.remove('show');
+  showWelcome();
+}
+
+async function loadMyProfile(user, email) {
+  const { data } = await sb.from('users').select('username,avatar_url,username_set').eq('email', email).maybeSingle();
+  myProfile = {
+    ...myProfile,
+    email,
+    role: adminRole || 'member',
+    username: data?.username || myProfile?.username || 'User',
+    avatar: data?.avatar_url || user.photoURL || DEFAULT_AVA(user.displayName)
+  };
+  refreshProfileUI();
+  loadInbox();
+  subscribeNotifs();
+  if (!data || !data.username_set) showUsernameModal();
+  else showWelcome();
+}
+
+function showWelcome() {
+  document.getElementById('welcomeName').textContent = `Halo, ${myProfile?.username || 'User'}! Selamat bergabung.`;
+  document.getElementById('welcomeAvatar').src = myProfile?.avatar || '';
+  document.getElementById('welcomeModal').classList.add('show');
+}
+
+/* ── Modal helpers ── */
+function openModalById(id) { document.getElementById(id).classList.add('show'); }
+function closeById(id) { document.getElementById(id).classList.remove('show'); }
+
+/* ── Owner: kirim pesan ke semua / user tertentu ── */
+function openOwnerSend() {
+  if (myProfile?.role !== 'owner') return;
+  openModalById('ownerSendModal');
+}
+
+function setOsTarget(t) {
+  document.getElementById('osUserWrap').style.display = t === 'user' ? '' : 'none';
+  document.querySelectorAll('.os-tab').forEach(b => b.classList.toggle('active', b.dataset.t === t));
+}
+
+async function sendOwnerNotif() {
+  if (myProfile?.role !== 'owner') return;
+  const target = document.querySelector('.os-tab.active')?.dataset.t || 'all';
+  const title = document.getElementById('osTitle').value.trim();
+  const body = document.getElementById('osBody').value.trim();
+  if (!title || !body) { showToast('Judul dan isi pesan wajib diisi.', 'error'); return; }
+
+  let toEmail = null;
+  if (target === 'user') {
+    const uname = document.getElementById('osUser').value.trim();
+    if (!uname) { showToast('Isi username tujuan dulu.', 'error'); return; }
+    const { data, error } = await sb.from('users').select('email').ilike('username', uname.replace(/_/g, '\\_')).maybeSingle();
+    if (error || !data) { showToast('User itu ga ketemu.', 'error'); return; }
+    toEmail = data.email;
+  }
+
+  const { error } = await sb.from('notifications').insert([{
+    to_email: toEmail, title: title.slice(0, 80), body: body.slice(0, 500), from_name: myProfile.username
+  }]);
+  if (error) { showToast('Gagal kirim pesan.', 'error'); console.error(error); return; }
+  showToast('Pesan terkirim!');
+  document.getElementById('osTitle').value = '';
+  document.getElementById('osBody').value = '';
+  closeById('ownerSendModal');
+}
+
+/* ── Inbox + titik merah ── */
+let notifCache = [];
+let notifChannel = null;
+const INBOX_KEY = 'yz_inbox_seen';
+
+function unreadCount() {
+  const seen = Number(localStorage.getItem(INBOX_KEY) || 0);
+  return notifCache.filter(n => new Date(n.created_at).getTime() > seen).length;
+}
+
+function updateInboxDot() {
+  const dot = document.getElementById('inboxDot');
+  if (dot) dot.style.display = unreadCount() > 0 ? '' : 'none';
+}
+
+async function loadInbox() {
+  const email = myProfile?.email;
+  let q = sb.from('notifications').select('*');
+  q = email ? q.or(`to_email.is.null,to_email.eq.${email}`) : q.is('to_email', null);
+  const { data, error } = await q.order('created_at', { ascending: false }).limit(50);
+  if (error) { console.error('Inbox error:', error); return; }
+  notifCache = data || [];
+  updateInboxDot();
+}
+
+function subscribeNotifs() {
+  if (notifChannel) return;
+  notifChannel = sb.channel('notif_rt')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, p => {
+      const n = p.new;
+      if (n.to_email && n.to_email !== myProfile?.email) return;
+      notifCache.unshift(n);
+      updateInboxDot();
+      showToast(`Pesan baru: ${n.title}`);
+    })
+    .subscribe(status => {
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') { notifChannel = null; }
+    });
+}
+
+function openInbox() {
+  const fmt = iso => new Date(iso).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  const seen = Number(localStorage.getItem(INBOX_KEY) || 0);
+  const box = document.getElementById('inboxList');
+  box.innerHTML = notifCache.length ? notifCache.map(n => {
+    const isNew = new Date(n.created_at).getTime() > seen;
+    return `<div class="inbox-item${isNew ? ' new' : ''}">
+      <div class="inbox-top"><b>${escHtml(n.title)}</b>${n.to_email ? '<span class="inbox-tag">Pribadi</span>' : '<span class="inbox-tag all">Semua</span>'}</div>
+      <div class="inbox-body">${escHtml(n.body)}</div>
+      <small>${escHtml(n.from_name || 'Owner')} · ${fmt(n.created_at)}</small>
+    </div>`;
+  }).join('') : '<div class="adm-empty">Belum ada pesan.</div>';
+  localStorage.setItem(INBOX_KEY, String(Date.now()));
+  updateInboxDot();
+  openModalById('inboxModal');
+}
+
+/* ── Routing: URL bisa dibuka langsung, sisanya 404 / easter egg ── */
+const ROUTES = {
+  '/': 'home', '/executor': 'executor', '/script': 'script', '/chat': 'globalchat',
+  '/tools': 'tools', '/akun': 'about', '/leaderboard': 'leaderboard'
+};
+const ROUTE_REV = Object.fromEntries(Object.entries(ROUTES).map(([p, id]) => [id, p]));
+const currentRoutePath = () => (location.pathname.replace(/\/+$/, '') || '/');
+
+function clearSysOverlays() {
+  document.getElementById('notFound').classList.remove('show');
+  document.getElementById('adminMock').classList.remove('show');
+}
+
+function checkSpecialRoute() {
+  clearSysOverlays();
+  const p = currentRoutePath();
+  if (p === '/admin') document.getElementById('adminMock').classList.add('show');
+  else if (!(p in ROUTES)) document.getElementById('notFound').classList.add('show');
+}
+
+function applyRoute() {
+  clearSysOverlays();
+  const p = currentRoutePath();
+  if (p === '/admin') { document.getElementById('adminMock').classList.add('show'); return; }
+  if (!(p in ROUTES)) { document.getElementById('notFound').classList.add('show'); return; }
+  const id = ROUTES[p];
+  switchPage(id, document.querySelector(`[data-page="${id}"]`));
+}
+
+window.addEventListener('popstate', () => { if (myProfile) applyRoute(); else checkSpecialRoute(); });
+checkSpecialRoute();
 
 /* ══ PROFILE DROPDOWN ══ */
 function toggleProfileDropdown() {
@@ -2433,6 +2814,7 @@ function switchPage(id, btn) {
   document.getElementById('page-' + id).classList.add('active');
   if (btn) btn.classList.add('active');
   window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (ROUTE_REV[id] && currentRoutePath() !== ROUTE_REV[id]) history.pushState(null, '', ROUTE_REV[id]);
   if (id === 'script' && document.getElementById('scriptGrid').innerHTML.includes('spinner')) fetchScriptBlox();
   if (id === 'globalchat') initChat();
   if (id === 'leaderboard') loadLeaderboard();
@@ -2659,11 +3041,11 @@ async function fetchScriptBlox() {
     card.innerHTML = `
       <img src="${thumb}" class="item-thumb" onerror="this.src='https://ui-avatars.com/api/?name=Script&background=111&color=fff'">
       <div class="item-info">
-        <div class="item-name">${escHtml(title.length > 42 ? title.slice(0,40)+'…' : title)} ${s.verified ? '✅' : ''} ${isPaid ? '💰' : ''}</div>
+        <div class="item-name">${escHtml(title.length > 42 ? title.slice(0,40)+'…' : title)} ${s.verified ? '<i class="fa-solid fa-circle-check" style="color:var(--green)"></i>' : ''} ${isPaid ? '<i class="fa-solid fa-coins" style="color:var(--yellow)"></i>' : ''}</div>
         <div class="item-detail">${escHtml(game)} ${ago}</div>
         <div class="item-status ${isPatched ? 'status-patched' : 'status-working'}">
           <i class="fa-solid fa-circle" style="font-size:5px;"></i> ${isPatched ? 'Patched' : 'Working'}
-          <span style="margin-left:8px;">👁️ ${views} ❤️ ${likes}</span>
+          <span style="margin-left:8px;"><i class="fa-solid fa-eye"></i> ${views} <i class="fa-solid fa-heart" style="color:#f87171"></i> ${likes}</span>
         </div>
       </div>
       <i class="fa-solid fa-chevron-right"></i>
@@ -2801,7 +3183,7 @@ async function checkRobloxAccount() {
         <div class="acc-detail"><span>User ID</span><span>${data.id}</span></div>
         <div class="acc-detail"><span>Teman</span><span>${data.friends || 0}</span></div>
         <div class="acc-detail"><span>Following</span><span>${data.followings || 0}</span></div>
-        <div class="acc-detail"><span>Status Ban</span><span style="color:${data.isBanned?'var(--red)':'var(--green)'}">${data.isBanned?'⚠ Banned':'✓ Aman'}</span></div>
+        <div class="acc-detail"><span>Status Ban</span><span style="color:${data.isBanned?'var(--red)':'var(--green)'}">${data.isBanned?'<i class="fa-solid fa-triangle-exclamation"></i> Banned':'<i class="fa-solid fa-check"></i> Aman'}</span></div>
         <div style="font-size:11px; color:var(--text-muted); margin-top:10px; border-top:1px solid var(--border); padding-top:10px; display:flex; align-items:center; gap:6px;">
           <i class="fa-solid fa-shield-halved"></i> Terverifikasi via Roblox API
         </div>
@@ -3116,7 +3498,6 @@ async function onUserSignedIn(user) {
   // Sinkron profil ke tabel users. ignoreDuplicates: exp & banned tidak ditimpa.
   await sb.from('users').upsert([{
     email,
-    username: (user.displayName || 'User').split(' ')[0],
     avatar_url: user.photoURL || null
   }], { onConflict: 'email', ignoreDuplicates: true });
 
@@ -3127,6 +3508,7 @@ async function onUserSignedIn(user) {
     location.reload();
     return;
   }
+  await loadMyProfile(user, email);
   loadAccountStats(user);
 }
 
