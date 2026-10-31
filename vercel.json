@@ -3,10 +3,6 @@
     {
       "source": "/bypass-delta",
       "destination": "/bypass-delta.html"
-    },
-    {
-      "source": "/gen-sc",
-      "destination": "/gen-sc.html"
     }
   ],
   "headers": [
