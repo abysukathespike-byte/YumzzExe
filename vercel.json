@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/bypass-delta", "destination": "/bypass-delta.html" }
+  ]
+}
